@@ -504,3 +504,85 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
 @media (max-width: 760px) {
   .blocco-con-foto { grid-template-columns: 1fr; }
 }
+
+/* ---------- calendario a griglia ---------- */
+
+.cal { margin-top: 1rem; }
+
+.cal-testa {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.7rem;
+}
+.cal-mese { font-family: var(--titoli); color: var(--titolo); font-size: 1.1rem; text-transform: capitalize; }
+
+.cal-griglia {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  background: var(--velo);
+  border: 1px solid var(--velo);
+  border-radius: var(--raggio);
+  overflow: hidden;
+}
+
+.cal-intestazione {
+  background: var(--velo);
+  color: var(--grigio);
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 0.35rem 0;
+}
+
+.cal-cella {
+  background: #fff;
+  min-height: 78px;
+  padding: 0.3rem 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cal-cella--fuori { background: transparent; min-height: 0; }
+.cal-cella--oggi { box-shadow: inset 0 0 0 2px var(--prugna); }
+.cal-numero { font-size: 0.8rem; color: var(--grigio); font-variant-numeric: tabular-nums; }
+.cal-cella--oggi .cal-numero { color: var(--prugna); font-weight: 700; }
+
+.cal-fascia {
+  display: block;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  padding: 0.1rem 0.3rem;
+  border-radius: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-fascia--libero { background: #e5f0e6; color: #2f5b3c; }
+.cal-fascia--occupato { background: #f6dede; color: #8a3131; }
+
+.cal-legenda { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+.cal-legenda .cal-fascia { font-size: 0.75rem; padding: 0.15rem 0.5rem; }
+
+@media (max-width: 620px) {
+  .cal-cella { min-height: 58px; padding: 0.2rem; }
+  .cal-fascia { font-size: 0.62rem; }
+}
+
+/* ---------- referenze ---------- */
+
+.referenze {
+  border: 1px solid var(--rosa);
+  border-radius: var(--raggio);
+  background: #fff;
+  padding: 1.1rem 1.2rem;
+  margin-top: 1.8rem;
+}
+.referenze-testa { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 0.8rem; }
+.referenze-testa h3 { margin: 0; }
+.referenze ul { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 1rem; }
+.referenze li { border-top: 1px solid var(--velo); padding-top: 0.9rem; }
+.referenze li:first-child { border-top: 0; padding-top: 0; }
+.referenze p { margin: 0.3rem 0 0.35rem; }
+
+.stelle { color: #c9971c; letter-spacing: 1px; }

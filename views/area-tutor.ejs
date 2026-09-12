@@ -13,6 +13,8 @@
   <p class="avviso">La scheda è completa ma non ancora pubblica. Il coordinamento la controlla e ti avvisa.</p>
 <% } %>
 
+<%- include('partials/referenze', { referenze: referenze, gestisci: false }) %>
+
 <div class="due-colonne" style="margin-top:2rem">
   <div>
     <h2>I miei dati</h2>
@@ -24,7 +26,9 @@
 
   <div>
     <h2>Il mio calendario</h2>
-    <p class="testo">Aggiungi le fasce in cui sei libera. Il coordinamento può modificarle o segnarle come occupate.</p>
+    <%- include('partials/calendario', { mese: mese, base: '/area/tutor' }) %>
+
+    <p class="testo" style="margin-top:1.5rem">Aggiungi le fasce in cui sei libera. Il coordinamento può modificarle o segnarle come occupate.</p>
     <form class="modulo" method="post" action="/area/tutor/disponibilita">
       <div class="doppia">
         <div>

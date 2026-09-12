@@ -326,6 +326,8 @@ app.use(
     res.locals.scurisci = scurisci;
     res.locals.RAGGI = RAGGI;
     res.locals.COLORI_TESTO = COLORI_TESTO;
+    res.locals.stelline = (n) => '★'.repeat(Math.round(Number(n) || 0)) + '☆'.repeat(5 - Math.round(Number(n) || 0));
+    res.locals.GIORNI_SETT = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
     res.locals.SCALE = SCALE;
     res.locals.corpoHtml = corpoHtml;
     res.locals.aCapo = (t) => esc(t).replace(/\n/g, '<br>');
@@ -378,7 +380,9 @@ function soloTutor(req, res, next) {
 const SELECT_TUTOR = `
   select u.*,
     coalesce(array_agg(distinct m.mansione) filter (where m.mansione is not null), '{}') as mansioni,
-    coalesce(array_agg(distinct t.nome) filter (where t.nome is not null), '{}') as materie
+    coalesce(array_agg(distinct t.nome) filter (where t.nome is not null), '{}') as materie,
+    (select count(*)::int from referenze r where r.tutor_id = u.id) as referenze_n,
+    (select round(avg(r.stelle)::numeric, 1) from referenze r where r.tutor_id = u.id) as stelle_media
   from users u
   left join mansioni m on m.user_id = u.id
   left join materie t on t.user_id = u.id
@@ -438,6 +442,76 @@ async function disponibilitaFuture(userId) {
     [userId]
   );
   return rows;
+}
+
+const MESE_OK = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+function meseCorrente() {
+  const o = new Date();
+  return `${o.getFullYear()}-${String(o.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function spostaMese(chiave, passi) {
+  const [a, m] = chiave.split('-').map(Number);
+  const d = new Date(Date.UTC(a, m - 1 + passi, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function chiaveData(d) {
+  return new Date(d).toISOString().slice(0, 10);
+}
+
+// Griglia del mese, settimane da lunedì a domenica, con le fasce appese al giorno giusto.
+function costruisciMese(chiave, slots) {
+  const [anno, mese] = chiave.split('-').map(Number);
+  const perGiorno = {};
+  for (const s of slots) {
+    const k = chiaveData(s.data);
+    (perGiorno[k] = perGiorno[k] || []).push(s);
+  }
+
+  const primo = new Date(Date.UTC(anno, mese - 1, 1));
+  const vuotiIniziali = (primo.getUTCDay() + 6) % 7; // lunedì = 0
+  const quanti = new Date(Date.UTC(anno, mese, 0)).getUTCDate();
+  const oggi = chiaveData(new Date());
+
+  const celle = [];
+  for (let i = 0; i < vuotiIniziali; i++) celle.push(null);
+  for (let g = 1; g <= quanti; g++) {
+    const k = `${anno}-${String(mese).padStart(2, '0')}-${String(g).padStart(2, '0')}`;
+    celle.push({ giorno: g, chiave: k, oggi: k === oggi, slots: perGiorno[k] || [] });
+  }
+  while (celle.length % 7 !== 0) celle.push(null);
+
+  const settimane = [];
+  for (let i = 0; i < celle.length; i += 7) settimane.push(celle.slice(i, i + 7));
+
+  return {
+    chiave,
+    nome: primo.toLocaleDateString('it-IT', { month: 'long', year: 'numeric', timeZone: 'UTC' }),
+    precedente: spostaMese(chiave, -1),
+    successivo: spostaMese(chiave, 1),
+    settimane
+  };
+}
+
+async function meseDi(userId, chiave) {
+  const { rows } = await pool.query(
+    `select * from disponibilita
+     where user_id = $1 and data >= $2::date and data < ($2::date + interval '1 month')
+     order by data asc, ora_inizio asc`,
+    [userId, chiave + '-01']
+  );
+  return costruisciMese(chiave, rows);
+}
+
+async function referenzeDi(tutorId) {
+  const { rows } = await pool.query(
+    'select * from referenze where tutor_id = $1 order by created_at desc',
+    [tutorId]
+  );
+  const media = rows.length ? rows.reduce((t, r) => t + r.stelle, 0) / rows.length : 0;
+  return { elenco: rows, media: Math.round(media * 10) / 10 };
 }
 
 function raggruppaPerData(slots) {
@@ -522,6 +596,7 @@ app.get(
       titolo: t.nome,
       t,
       giorni: raggruppaPerData(slots),
+      referenze: await referenzeDi(t.id),
       mansionePre: req.query.mansione || ''
     });
   })
@@ -641,7 +716,15 @@ app.get(
       `select * from richieste where tutor_id = $1 and stato <> 'chiusa' order by created_at desc`,
       [t.id]
     );
-    res.render('area-tutor', { titolo: 'La mia pagina', t, giorni: raggruppaPerData(slots), richieste });
+    const chiave = MESE_OK.test(req.query.mese || '') ? req.query.mese : meseCorrente();
+    res.render('area-tutor', {
+      titolo: 'La mia pagina',
+      t,
+      giorni: raggruppaPerData(slots),
+      mese: await meseDi(t.id, chiave),
+      referenze: await referenzeDi(t.id),
+      richieste
+    });
   })
 );
 
@@ -747,7 +830,16 @@ app.get(
       'select * from richieste where tutor_id=$1 order by created_at desc limit 30',
       [t.id]
     );
-    res.render('admin-tutor', { titolo: `Scheda di ${t.nome}`, t, giorni: raggruppaPerData(slots), richieste, STATI_UTENTE });
+    const chiave = MESE_OK.test(req.query.mese || '') ? req.query.mese : meseCorrente();
+    res.render('admin-tutor', {
+      titolo: `Scheda di ${t.nome}`,
+      t,
+      giorni: raggruppaPerData(slots),
+      mese: await meseDi(t.id, chiave),
+      referenze: await referenzeDi(t.id),
+      richieste,
+      STATI_UTENTE
+    });
   })
 );
 
@@ -826,6 +918,37 @@ app.post(
     if (!STATI_RICHIESTA.includes(req.body.stato)) return res.redirect('/area/coordinamento');
     await pool.query('update richieste set stato=$1 where id=$2', [req.body.stato, req.params.id]);
     res.redirect(req.body.ritorno || '/area/coordinamento');
+  })
+);
+
+/* ---------- referenze (le aggiunge il coordinamento) ---------- */
+
+app.post(
+  '/area/coordinamento/tutor/:id/referenze',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const stelle = Math.min(5, Math.max(1, parseInt(req.body.stelle, 10) || 0));
+    const commento = String(req.body.commento || '').trim().slice(0, 800);
+    if (!commento) {
+      avvisa(req, 'Scrivi il commento della referenza prima di salvarla.', 'errore');
+      return res.redirect(`/area/coordinamento/tutor/${req.params.id}`);
+    }
+    await pool.query(
+      'insert into referenze (tutor_id, autore, stelle, commento) values ($1,$2,$3,$4)',
+      [req.params.id, String(req.body.autore || '').trim().slice(0, 120), stelle, commento]
+    );
+    avvisa(req, 'Referenza aggiunta: ora si vede sulla sua pagina.');
+    res.redirect(`/area/coordinamento/tutor/${req.params.id}`);
+  })
+);
+
+app.post(
+  '/area/coordinamento/referenze/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('delete from referenze where id = $1 returning tutor_id', [req.params.id]);
+    avvisa(req, 'Referenza eliminata.');
+    res.redirect(rows[0] ? `/area/coordinamento/tutor/${rows[0].tutor_id}` : '/area/coordinamento');
   })
 );
 

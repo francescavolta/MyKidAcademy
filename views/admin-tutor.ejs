@@ -35,7 +35,9 @@
 
   <div>
     <h2>Calendario</h2>
-    <form class="modulo" method="post" action="/area/coordinamento/tutor/<%= t.id %>/disponibilita">
+    <%- include('partials/calendario', { mese: mese, base: '/area/coordinamento/tutor/' + t.id }) %>
+
+    <form class="modulo" method="post" action="/area/coordinamento/tutor/<%= t.id %>/disponibilita" style="margin-top:1.5rem">
       <div class="doppia">
         <div>
           <label for="data">Giorno</label>
@@ -89,6 +91,32 @@
         <% }) %>
       </ul>
     <% } %>
+
+    <h2 style="margin-top:2.5rem">Referenze</h2>
+    <%- include('partials/referenze', { referenze: referenze, gestisci: true }) %>
+    <form class="modulo" method="post" action="/area/coordinamento/tutor/<%= t.id %>/referenze" style="margin-top:1rem">
+      <div class="doppia">
+        <div>
+          <label for="autore">Chi la firma <span class="aiuto">Es. "Anna, mamma di Luca".</span></label>
+          <input id="autore" name="autore" type="text" maxlength="120">
+        </div>
+        <div>
+          <label for="stelle">Stelle</label>
+          <select id="stelle" name="stelle">
+            <option value="5">★★★★★ — 5</option>
+            <option value="4">★★★★☆ — 4</option>
+            <option value="3">★★★☆☆ — 3</option>
+            <option value="2">★★☆☆☆ — 2</option>
+            <option value="1">★☆☆☆☆ — 1</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label for="commento">Commento</label>
+        <textarea id="commento" name="commento" style="min-height:5rem" maxlength="800" required></textarea>
+      </div>
+      <div><button class="bottone" type="submit">Aggiungi la referenza</button></div>
+    </form>
 
     <h2 style="margin-top:2.5rem">Richieste per <%= t.nome.split(' ')[0] %></h2>
     <% if (richieste.length === 0) { %>

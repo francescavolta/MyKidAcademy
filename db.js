@@ -80,6 +80,16 @@ create table if not exists articoli (
 create index if not exists articoli_pubblicati on articoli (pubblicato, created_at desc);
 alter table articoli add column if not exists immagine_id integer references immagini(id) on delete set null;
 
+create table if not exists referenze (
+  id         serial primary key,
+  tutor_id   integer not null references users(id) on delete cascade,
+  autore     text not null default '',
+  stelle     integer not null default 5,
+  commento   text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists referenze_tutor on referenze (tutor_id, created_at desc);
+
 create table if not exists sezioni (
   id            serial primary key,
   tipo          text not null,

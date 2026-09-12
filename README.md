@@ -89,6 +89,12 @@ Serve un PostgreSQL raggiungibile. Se usi quello di Render dall'esterno, prendi 
 | `views/admin-aspetto.ejs` | la pagina "Aspetto del sito" nel coordinamento |
 | `views/` | le pagine. `partials/campi-tutor.ejs` è il modulo condiviso tra candidatura, area tutor e scheda del coordinamento |
 
+## Calendario e referenze
+
+**Calendario a griglia** — nell'area tutor e nella scheda del coordinamento, sopra l'agenda per giorno (che resta). Griglia del mese da lunedì a domenica, frecce per cambiare mese (`?mese=2026-10`), fasce verdi se libere e rosse se occupate, bordo sul giorno di oggi. La griglia la costruisce `costruisciMese()` in `server.js`, la disegna `views/partials/calendario.ejs` — si riusa passando `mese` e `base` (l'indirizzo su cui puntano le frecce).
+
+**Referenze** — tabella `referenze` (tutor, firma, stelle 1-5, commento). Le aggiunge e le cancella solo il coordinamento, dalla scheda della tutor. Il riquadro (`views/partials/referenze.ejs`) non compare se non ce n'è nessuna. La media e il numero si vedono anche sulle schede in elenco e in cima al profilo, calcolate nella query `SELECT_TUTOR`.
+
 ## Aspetto, immagini e blog
 
 In cima all'area coordinamento ci sono tre scorciatoie.

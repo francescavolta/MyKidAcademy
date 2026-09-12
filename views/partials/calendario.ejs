@@ -1,0 +1,35 @@
+<div class="cal">
+  <div class="cal-testa">
+    <a class="bottone piccolo chiaro" href="<%= base %>?mese=<%= mese.precedente %>" aria-label="Mese precedente">←</a>
+    <strong class="cal-mese"><%= mese.nome %></strong>
+    <a class="bottone piccolo chiaro" href="<%= base %>?mese=<%= mese.successivo %>" aria-label="Mese successivo">→</a>
+  </div>
+
+  <div class="cal-griglia" role="grid">
+    <% GIORNI_SETT.forEach(function (g) { %>
+      <div class="cal-intestazione"><%= g %></div>
+    <% }) %>
+
+    <% mese.settimane.forEach(function (settimana) { %>
+      <% settimana.forEach(function (c) { %>
+        <% if (!c) { %>
+          <div class="cal-cella cal-cella--fuori"></div>
+        <% } else { %>
+          <div class="cal-cella <%= c.oggi ? 'cal-cella--oggi' : '' %>">
+            <span class="cal-numero"><%= c.giorno %></span>
+            <% c.slots.forEach(function (s) { %>
+              <span class="cal-fascia cal-fascia--<%= s.stato %>" title="<%= s.nota || (s.stato === 'occupato' ? 'occupato' : 'libero') %>">
+                <%= ora(s.ora_inizio) %><%= s.nota ? ' ' + s.nota : '' %>
+              </span>
+            <% }) %>
+          </div>
+        <% } %>
+      <% }) %>
+    <% }) %>
+  </div>
+
+  <p class="cal-legenda">
+    <span class="cal-fascia cal-fascia--libero">libero</span>
+    <span class="cal-fascia cal-fascia--occupato">occupato</span>
+  </p>
+</div>
