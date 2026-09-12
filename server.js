@@ -297,6 +297,7 @@ const STATI_UTENTE = ['in_attesa', 'approvato', 'rifiutato', 'sospeso'];
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
+app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 if (PROD) app.set('trust proxy', 1);
 
@@ -351,6 +352,7 @@ app.use(
     res.locals.COLORI_TESTO = COLORI_TESTO;
     res.locals.stelline = (n) => '★'.repeat(Math.round(Number(n) || 0)) + '☆'.repeat(5 - Math.round(Number(n) || 0));
     res.locals.LARGHEZZE = LARGHEZZE;
+    res.locals.TIPI_SEZIONE = TIPI_SEZIONE;
     res.locals.GIORNI_SETT = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
     res.locals.SCALE = SCALE;
     res.locals.corpoHtml = corpoHtml;
@@ -370,6 +372,7 @@ app.use(
       new Date(d).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
     res.locals.ora = (t) => String(t).slice(0, 5);
     res.locals.percorso = req.path;
+    res.locals.modifica = false;
     res.locals.avviso = req.session.avviso || null;
     delete req.session.avviso;
     res.locals.utente = null;
@@ -379,6 +382,7 @@ app.use(
       if (rows[0]) {
         req.utente = rows[0];
         res.locals.utente = rows[0];
+        res.locals.modifica = rows[0].role === 'admin' && req.query.modifica === '1';
       } else {
         req.session.destroy(() => {});
       }
@@ -617,7 +621,7 @@ function tariffaValida(v) {
 app.get(
   '/',
   wrap(async (req, res) => {
-    const sezioni = await sezioniHome();
+    const sezioni = await sezioniHome({ soloAttive: !res.locals.modifica });
     const tutor = sezioni.some((s) => s.tipo === 'tutor') ? (await tutorPubblici()).slice(0, 6) : [];
     let articoli = [];
     if (sezioni.some((s) => s.tipo === 'articoli')) {
@@ -1094,6 +1098,11 @@ app.post(
       `insert into sezioni (tipo, titolo, ordine, attiva) values ($1, $2, $3, false) returning id`,
       [tipo, TIPI_SEZIONE[tipo].nome === 'Testo' ? 'Nuovo blocco' : '', Number(max[0].m) + 1]
     );
+    if (req.body.ritorno === 'home') {
+      await pool.query('update sezioni set attiva = true where id = $1', [rows[0].id]);
+      avvisa(req, 'Blocco aggiunto in fondo alla home: cliccaci sopra per scriverlo.');
+      return res.redirect('/?modifica=1');
+    }
     avvisa(req, 'Blocco aggiunto in fondo, per ora spento: compilalo e accendilo.');
     res.redirect(`/area/coordinamento/home/${rows[0].id}`);
   })
@@ -1175,7 +1184,7 @@ app.post(
   soloAdmin,
   wrap(async (req, res) => {
     await pool.query('update sezioni set attiva = not attiva where id = $1', [req.params.id]);
-    res.redirect('/area/coordinamento/home');
+    res.redirect(req.body.ritorno === 'home' ? '/?modifica=1' : '/area/coordinamento/home');
   })
 );
 
@@ -1185,7 +1194,60 @@ app.post(
   wrap(async (req, res) => {
     await pool.query('delete from sezioni where id = $1', [req.params.id]);
     avvisa(req, 'Blocco eliminato.');
-    res.redirect('/area/coordinamento/home');
+    res.redirect(req.body.ritorno === 'home' ? '/?modifica=1' : '/area/coordinamento/home');
+  })
+);
+
+/* ---------- modifica della home dalla home stessa ---------- */
+
+app.get(
+  '/area/coordinamento/immagini.json',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select id, nome from immagini order by created_at desc');
+    res.json(rows);
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/ordine',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const ordine = Array.isArray(req.body.ordine) ? req.body.ordine : [];
+    const { rows } = await pool.query('select id from sezioni');
+    const esistenti = new Set(rows.map((r) => String(r.id)));
+    const puliti = ordine.map(String).filter((id) => esistenti.has(id));
+    if (puliti.length !== rows.length) return res.status(400).json({ errore: 'ordine incompleto' });
+    for (let i = 0; i < puliti.length; i++) {
+      await pool.query('update sezioni set ordine = $1 where id = $2', [i + 1, puliti[i]]);
+    }
+    res.json({ ok: true });
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/:id/campo',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { campo, valore } = req.body;
+    const ammessi = {
+      titolo: () => String(valore || '').trim().slice(0, 160),
+      corpo: () => String(valore || '').slice(0, 4000),
+      larghezza: () => (LARGHEZZE[valore] ? valore : 'piena'),
+      posizione: () => (POSIZIONI_FOTO[valore] ? valore : 'destra'),
+      dimensione: () => (DIMENSIONI_FOTO[valore] ? valore : 'media'),
+      allineamento: () => (ALLINEAMENTI[valore] ? valore : 'sinistra'),
+      dimensione_titolo: () => (DIMENSIONI_TITOLO[valore] ? valore : 'normale'),
+      vert: () => (VERTICALI[valore] ? valore : 'alto'),
+      immagine_id: () => (/^\d+$/.test(String(valore || '')) ? valore : null)
+    };
+    if (!ammessi[campo]) return res.status(400).json({ errore: 'campo non modificabile' });
+    const { rowCount } = await pool.query(
+      `update sezioni set ${campo} = $1 where id = $2`,
+      [ammessi[campo](), req.params.id]
+    );
+    if (!rowCount) return res.status(404).json({ errore: 'blocco non trovato' });
+    res.json({ ok: true });
   })
 );
 

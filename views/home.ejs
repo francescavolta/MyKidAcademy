@@ -26,14 +26,78 @@
 
 </section>
 
+<% if (modifica) { %>
+  <div class="modifica-barra">
+    <strong>Stai modificando la home</strong>
+    <span id="modifica-stato" class="data" aria-live="polite"></span>
+    <span class="modifica-barra-azioni">
+      <form method="post" action="/area/coordinamento/home/aggiungi">
+        <input type="hidden" name="ritorno" value="home">
+        <select name="tipo" aria-label="Tipo di blocco da aggiungere">
+          <% Object.keys(TIPI_SEZIONE).forEach(function (k) { %><option value="<%= k %>"><%= TIPI_SEZIONE[k].nome %></option><% }) %>
+        </select>
+        <button class="bottone piccolo" type="submit">Aggiungi blocco</button>
+      </form>
+      <a class="bottone piccolo chiaro" href="/area/coordinamento/home">Elenco completo</a>
+      <a class="bottone piccolo chiaro" href="/">Esci dalla modifica</a>
+    </span>
+  </div>
+<% } %>
+
+<div id="<%= modifica ? 'home-modificabile' : 'home' %>" class="<%= modifica ? 'in-modifica' : '' %>">
 <% gruppi.forEach(function (g) { %>
   <section class="fila" style="grid-template-columns: repeat(<%= g.totale %>, minmax(0, 1fr))">
     <% g.blocchi.forEach(function (b, i) { %>
-      <div class="cella vert--<%= b.vert %>" style="grid-column: span <%= g.colonne[i] %>">
+      <div class="cella vert--<%= b.vert %> <%= modifica && !b.attiva ? 'cella--spenta' : '' %>"
+           style="grid-column: span <%= g.colonne[i] %>"
+           <% if (modifica) { %>
+             draggable="true"
+             data-id="<%= b.id %>"
+             data-titolo="<%= b.titolo %>"
+             data-corpo="<%= b.corpo %>"
+             <%- ['testo', 'cta'].includes(b.tipo) ? 'data-corpo-modificabile="1"' : '' %>
+           <% } %>>
+
+        <% if (modifica) { %>
+          <div class="modifica-strumenti">
+            <span class="ms-presa" title="Trascina per spostare">⠿</span>
+            <span class="ms-tipo"><%= TIPI_SEZIONE[b.tipo].nome %><%= b.attiva ? '' : ' · spento' %></span>
+            <button type="button" data-comando="testo">Scrivi</button>
+            <button type="button" data-comando="larghezza"
+                    data-valore="<%= b.larghezza %>"
+                    data-valori="<%= Object.keys(LARGHEZZE).join(',') %>"
+                    title="Larghezza: <%= (LARGHEZZE[b.larghezza] || LARGHEZZE.piena).nome %>">↔ <%= (LARGHEZZE[b.larghezza] || LARGHEZZE.piena).nome %></button>
+            <% if (TIPI_SEZIONE[b.tipo].campi.includes('immagine')) { %>
+              <button type="button" data-comando="immagine">Immagine</button>
+            <% } %>
+            <% if (TIPI_SEZIONE[b.tipo].campi.includes('posizione')) { %>
+              <button type="button" data-comando="posizione" data-valore="<%= b.posizione %>" data-valori="destra,sinistra,sopra,sotto">Foto: <%= b.posizione %></button>
+            <% } %>
+            <button type="button" data-comando="vert" data-valore="<%= b.vert %>" data-valori="alto,centro,basso">↕ <%= b.vert %></button>
+            <form method="post" action="/area/coordinamento/home/<%= b.id %>/accendi">
+              <input type="hidden" name="ritorno" value="home">
+              <button type="submit"><%= b.attiva ? 'Spegni' : 'Accendi' %></button>
+            </form>
+            <a href="/area/coordinamento/home/<%= b.id %>">Tutto</a>
+            <form method="post" action="/area/coordinamento/home/<%= b.id %>/elimina"
+                  onsubmit="return confirm('Eliminare questo blocco?')">
+              <input type="hidden" name="ritorno" value="home">
+              <button type="submit" title="Elimina">✕</button>
+            </form>
+          </div>
+        <% } %>
+
         <%- include('partials/sezione', { s: b }) %>
       </div>
     <% }) %>
   </section>
 <% }) %>
+</div>
+
+<% if (modifica) { %>
+  <script src="/modifica-home.js" defer></script>
+<% } else if (utente && utente.role === 'admin') { %>
+  <p style="margin-top:3rem"><a class="bottone chiaro" href="/?modifica=1">Modifica questa home</a></p>
+<% } %>
 
 <%- include('partials/piede') %>

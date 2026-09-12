@@ -665,3 +665,76 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
   .fila { grid-template-columns: 1fr !important; gap: 2.2rem; }
   .cella { grid-column: span 1 !important; }
 }
+
+/* ---------- modifica della home in pagina ---------- */
+
+.modifica-barra {
+  position: sticky;
+  top: 64px;
+  z-index: 8;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin: 1rem 0 1.5rem;
+  padding: 0.7rem 1rem;
+  background: var(--velo);
+  border: 1px solid var(--rosa);
+  border-radius: var(--raggio);
+}
+.modifica-barra-azioni { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.modifica-barra form { display: flex; gap: 0.4rem; align-items: center; }
+.modifica-barra select { width: auto; max-width: 12rem; padding: 0.25rem 0.5rem; font-size: 0.9rem; }
+
+.in-modifica .cella {
+  position: relative;
+  border: 1px dashed var(--rosa);
+  border-radius: var(--raggio);
+  padding: 2.4rem 0.9rem 0.9rem;
+}
+.in-modifica .cella:hover { border-color: var(--prugna); }
+.in-modifica .cella--spenta { opacity: 0.5; background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(0,0,0,.02) 8px, rgba(0,0,0,.02) 16px); }
+.in-modifica .cella--in-volo { opacity: 0.35; }
+.in-modifica .cella--bersaglio { border: 2px solid var(--prugna); }
+
+.modifica-strumenti {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+}
+.modifica-strumenti button, .modifica-strumenti a {
+  font: inherit;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--rosa);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--inchiostro);
+  text-decoration: none;
+  cursor: pointer;
+}
+.modifica-strumenti button:hover, .modifica-strumenti a:hover { background: var(--velo); }
+.modifica-strumenti form { display: inline; }
+.ms-presa { cursor: grab; font-size: 1rem; color: var(--grigio); padding: 0 0.2rem; }
+.ms-tipo { color: var(--grigio); margin-right: auto; }
+
+.modifica-scrivi {
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border: 1px solid var(--prugna);
+  border-radius: var(--raggio);
+  background: #fff;
+  display: grid;
+  gap: 0.7rem;
+}
+.modifica-scrivi label { display: block; }
+
+@media (max-width: 760px) {
+  .modifica-barra { position: static; }
+  .ms-tipo { display: none; }
+}

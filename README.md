@@ -118,6 +118,10 @@ In cima all'area coordinamento ci sono tre scorciatoie.
 
 C'è "Ripristina tutto come all'inizio". Tutto sta nella tabella `impostazioni`: cambiare aspetto non richiede un deploy.
 
+**Home, modifica in pagina** — da amministratore, in fondo alla home c'è "Modifica questa home" (`/?modifica=1`). In quella modalità i blocchi sono contornati, compresi quelli spenti, e ognuno ha la sua barretta: presa per **trascinarlo** dove vuoi, "Scrivi" per cambiare titolo e testo sul posto, un pulsante che cicla la **larghezza**, uno per scegliere l'**immagine**, uno per la **posizione della foto**, uno per l'**allineamento verticale**, più Spegni, Elimina e "Tutto" (che apre la scheda completa). In cima, una barra per aggiungere un blocco e uscire.
+
+Ogni modifica passa da `POST /area/coordinamento/home/:id/campo` (JSON, whitelist dei campi ammessi) o da `POST /area/coordinamento/home/ordine` (JSON, elenco completo degli id), poi **la pagina si ricarica**: la resa è sempre quella vera del server, mai un'anteprima costruita nel browser. Il codice sta in `public/modifica-home.js`.
+
 **Home** — la home è il titolo in cima (che si cambia da Aspetto) più una pila di blocchi riordinabili, nella tabella `sezioni`. Ogni blocco si sposta con ↑ ↓, si spegne senza cancellarlo, si modifica e si elimina. I tipi sono in `TIPI_SEZIONE` (`server.js`):
 
 | Tipo | Cosa mostra |
