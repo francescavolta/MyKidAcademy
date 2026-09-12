@@ -27,15 +27,13 @@
 </section>
 
 <% gruppi.forEach(function (g) { %>
-  <% if (g.coppia) { %>
-    <section class="due-colonne">
-      <% g.blocchi.forEach(function (s) { %>
-        <div><%- include('partials/sezione', { s: s }) %></div>
-      <% }) %>
-    </section>
-  <% } else { %>
-    <section><%- include('partials/sezione', { s: g.blocchi[0] }) %></section>
-  <% } %>
+  <section class="fila" style="grid-template-columns: repeat(<%= g.totale %>, minmax(0, 1fr))">
+    <% g.blocchi.forEach(function (b, i) { %>
+      <div class="cella vert--<%= b.vert %>" style="grid-column: span <%= g.colonne[i] %>">
+        <%- include('partials/sezione', { s: b }) %>
+      </div>
+    <% }) %>
+  </section>
 <% }) %>
 
 <%- include('partials/piede') %>

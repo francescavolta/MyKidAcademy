@@ -2,7 +2,7 @@
 
 <p style="margin-top:1.5rem"><a href="/area/coordinamento">← Coordinamento</a></p>
 <h1>Home</h1>
-<p class="guida">La home è fatta di blocchi, uno sotto l'altro. Qui li sposti, li spegni, ne aggiungi e ne togli. Il titolo grande e l'immagine in cima si cambiano invece da <a href="/area/coordinamento/aspetto">Aspetto del sito</a>.</p>
+<p class="guida">La home è fatta di blocchi in fila. Se dai a due blocchi consecutivi metà larghezza si mettono uno di fianco all'altro; con tre da un terzo ne fai una riga da tre. Qui li sposti, li spegni, ne aggiungi e ne togli. Il titolo grande e l'immagine in cima si cambiano invece da <a href="/area/coordinamento/aspetto">Aspetto del sito</a>.</p>
 
 <% if (sezioni.length === 0) { %>
   <div class="vuoto"><p>Nessun blocco: la home mostra solo il titolo in cima. Aggiungine uno qui sotto.</p></div>
@@ -13,7 +13,7 @@
         <div class="blocchi-testa">
           <div>
             <h3><%= s.titolo || TIPI_SEZIONE[s.tipo].nome %></h3>
-            <span class="data"><%= TIPI_SEZIONE[s.tipo].nome %><% if (s.larghezza === 'meta') { %> · metà larghezza<% } %> ·
+            <span class="data"><%= TIPI_SEZIONE[s.tipo].nome %> · <%= (LARGHEZZE[s.larghezza] || LARGHEZZE.piena).nome.toLowerCase() %> ·
               <span class="stato <%= s.attiva ? 'stato--approvato' : 'stato--in_attesa' %>"><%= s.attiva ? 'visibile' : 'spento' %></span>
             </span>
           </div>

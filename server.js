@@ -92,6 +92,17 @@ const COLORI_TESTO = {
   grigio: { nome: 'Grigio', css: '#7c6670' }
 };
 
+// Larghezze in dodicesimi: i blocchi consecutivi si affiancano finché entrano in 12.
+const LARGHEZZE = {
+  piena: { nome: 'Tutta la larghezza', col: 12 },
+  tre_quarti: { nome: 'Tre quarti', col: 9 },
+  due_terzi: { nome: 'Due terzi', col: 8 },
+  meta: { nome: 'Metà', col: 6 },
+  terzo: { nome: 'Un terzo', col: 4 },
+  quarto: { nome: 'Un quarto', col: 3 }
+};
+const VERTICALI = { alto: 'In alto', centro: 'Al centro', basso: 'In basso' };
+
 const POSIZIONI_FOTO = {
   destra: 'A destra del testo',
   sinistra: 'A sinistra del testo',
@@ -104,10 +115,10 @@ const DIMENSIONI_TITOLO = { piccolo: 'Piccolo', normale: 'Normale', grande: 'Gra
 
 const TIPI_SEZIONE = {
   testo: { nome: 'Testo', spiega: 'Un titolo e del testo, con immagine se vuoi.', campi: ['titolo', 'dimensione_titolo', 'corpo', 'allineamento', 'immagine', 'posizione', 'dimensione', 'larghezza'] },
-  immagine: { nome: 'Immagine', spiega: 'Una foto con didascalia facoltativa.', campi: ['immagine', 'dimensione', 'allineamento', 'titolo'] },
-  mansioni: { nome: 'Tessere dei servizi', spiega: 'I cinque riquadri: ripetizioni, compiti, babysitter, cucina, pulizia.', campi: ['titolo', 'dimensione_titolo', 'allineamento'] },
-  tutor: { nome: 'Schede delle tutor', spiega: 'Le prime sei ragazze approvate, con il link a tutte.', campi: ['titolo', 'dimensione_titolo', 'allineamento'] },
-  articoli: { nome: 'Ultimi articoli del blog', spiega: 'I tre articoli pubblicati più recenti.', campi: ['titolo', 'dimensione_titolo', 'allineamento'] },
+  immagine: { nome: 'Immagine', spiega: 'Una foto con didascalia facoltativa.', campi: ['immagine', 'dimensione', 'allineamento', 'titolo', 'larghezza'] },
+  mansioni: { nome: 'Tessere dei servizi', spiega: 'I cinque riquadri: ripetizioni, compiti, babysitter, cucina, pulizia.', campi: ['titolo', 'dimensione_titolo', 'allineamento', 'larghezza'] },
+  tutor: { nome: 'Schede delle tutor', spiega: 'Le prime sei ragazze approvate, con il link a tutte.', campi: ['titolo', 'dimensione_titolo', 'allineamento', 'larghezza'] },
+  articoli: { nome: 'Ultimi articoli del blog', spiega: 'I tre articoli pubblicati più recenti.', campi: ['titolo', 'dimensione_titolo', 'allineamento', 'larghezza'] },
   cta: { nome: 'Invito con pulsante', spiega: 'Titolo, testo e un pulsante che porta dove vuoi.', campi: ['titolo', 'dimensione_titolo', 'corpo', 'allineamento', 'testo_bottone', 'link_bottone', 'larghezza'] }
 };
 
@@ -339,6 +350,7 @@ app.use(
     res.locals.RAGGI = RAGGI;
     res.locals.COLORI_TESTO = COLORI_TESTO;
     res.locals.stelline = (n) => '★'.repeat(Math.round(Number(n) || 0)) + '☆'.repeat(5 - Math.round(Number(n) || 0));
+    res.locals.LARGHEZZE = LARGHEZZE;
     res.locals.GIORNI_SETT = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
     res.locals.SCALE = SCALE;
     res.locals.corpoHtml = corpoHtml;
@@ -407,20 +419,47 @@ async function sezioniHome({ soloAttive = true } = {}) {
   return rows;
 }
 
-// Due blocchi "metà" di fila stanno affiancati; tutto il resto va a piena larghezza.
+// Metto in fila i blocchi consecutivi finché le loro larghezze stanno in 12 dodicesimi.
+function colonne(sezione) {
+  return (LARGHEZZE[sezione.larghezza] || LARGHEZZE.piena).col;
+}
+
 function raggruppaSezioni(sezioni) {
-  const gruppi = [];
-  for (let i = 0; i < sezioni.length; i++) {
-    const s = sezioni[i];
-    const prossima = sezioni[i + 1];
-    if (s.larghezza === 'meta' && prossima && prossima.larghezza === 'meta') {
-      gruppi.push({ coppia: true, blocchi: [s, prossima] });
-      i++;
-    } else {
-      gruppi.push({ coppia: false, blocchi: [s] });
+  const file = [];
+  let fila = [];
+  let somma = 0;
+
+  for (const s of sezioni) {
+    const c = colonne(s);
+    if (c >= 12) {
+      if (fila.length) file.push(fila);
+      file.push([s]);
+      fila = [];
+      somma = 0;
+      continue;
+    }
+    if (somma + c > 12) {
+      file.push(fila);
+      fila = [];
+      somma = 0;
+    }
+    fila.push(s);
+    somma += c;
+    if (somma === 12) {
+      file.push(fila);
+      fila = [];
+      somma = 0;
     }
   }
-  return gruppi;
+  if (fila.length) file.push(fila);
+
+  // Il totale della riga diventa il numero di colonne della griglia: così una riga
+  // incompleta riempie comunque la larghezza mantenendo le proporzioni fra i blocchi.
+  return file.map((blocchi) => ({
+    blocchi,
+    totale: blocchi.reduce((t, b) => t + colonne(b), 0),
+    colonne: blocchi.map(colonne)
+  }));
 }
 
 async function tutorPubblici({ mansione, zona } = {}) {
@@ -1032,7 +1071,12 @@ app.get(
   '/area/coordinamento/home',
   soloAdmin,
   wrap(async (req, res) => {
-    res.render('admin-home', { titolo: 'Home', sezioni: await sezioniHome({ soloAttive: false }), TIPI_SEZIONE });
+    res.render('admin-home', {
+      titolo: 'Home',
+      sezioni: await sezioniHome({ soloAttive: false }),
+      TIPI_SEZIONE,
+      LARGHEZZE
+    });
   })
 );
 
@@ -1070,7 +1114,9 @@ app.get(
       POSIZIONI_FOTO,
       DIMENSIONI_FOTO,
       ALLINEAMENTI,
-      DIMENSIONI_TITOLO
+      DIMENSIONI_TITOLO,
+      LARGHEZZE,
+      VERTICALI
     });
   })
 );
@@ -1082,20 +1128,21 @@ app.post(
     await pool.query(
       `update sezioni set titolo=$1, corpo=$2, immagine_id=$3, testo_bottone=$4, link_bottone=$5,
                           larghezza=$6, attiva=$7, posizione=$8, dimensione=$9,
-                          allineamento=$10, dimensione_titolo=$11
-       where id=$12`,
+                          allineamento=$10, dimensione_titolo=$11, vert=$12
+       where id=$13`,
       [
         String(req.body.titolo || '').trim().slice(0, 160),
         String(req.body.corpo || '').slice(0, 4000),
         req.body.immagine_id || null,
         String(req.body.testo_bottone || '').trim().slice(0, 60),
         String(req.body.link_bottone || '').trim().slice(0, 200),
-        req.body.larghezza === 'meta' ? 'meta' : 'piena',
+        LARGHEZZE[req.body.larghezza] ? req.body.larghezza : 'piena',
         req.body.attiva === 'si',
         POSIZIONI_FOTO[req.body.posizione] ? req.body.posizione : 'destra',
         DIMENSIONI_FOTO[req.body.dimensione] ? req.body.dimensione : 'media',
         ALLINEAMENTI[req.body.allineamento] ? req.body.allineamento : 'sinistra',
         DIMENSIONI_TITOLO[req.body.dimensione_titolo] ? req.body.dimensione_titolo : 'normale',
+        VERTICALI[req.body.vert] ? req.body.vert : 'alto',
         req.params.id
       ]
     );

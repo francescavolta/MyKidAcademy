@@ -647,3 +647,21 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
   }
   .blocco-con-foto img { order: -1; }
 }
+
+/* ---------- file di blocchi nella home ---------- */
+
+.fila {
+  display: grid;
+  gap: 1.6rem 2.5rem;
+  align-items: start;
+}
+.fila + .fila { margin-top: 3.5rem; }
+
+.cella { min-width: 0; }
+.vert--centro { align-self: center; }
+.vert--basso { align-self: end; }
+
+@media (max-width: 760px) {
+  .fila { grid-template-columns: 1fr !important; gap: 2.2rem; }
+  .cella { grid-column: span 1 !important; }
+}

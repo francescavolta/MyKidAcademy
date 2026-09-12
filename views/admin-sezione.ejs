@@ -111,14 +111,28 @@
   <% } %>
 
   <% if (campi.includes('larghezza')) { %>
-    <fieldset>
-      <legend>Larghezza</legend>
-      <div class="caselle">
-        <label><input type="radio" name="larghezza" value="piena" <%- s.larghezza === 'meta' ? '' : 'checked' %>> Tutta la larghezza</label>
-        <label><input type="radio" name="larghezza" value="meta" <%- s.larghezza === 'meta' ? 'checked' : '' %>> Metà, per stare a fianco del blocco seguente</label>
+    <div class="doppia">
+      <div>
+        <label for="larghezza">Larghezza del blocco
+          <span class="aiuto">I blocchi che non occupano tutta la larghezza si affiancano da soli, in ordine, finché c'è spazio nella riga.</span>
+        </label>
+        <select id="larghezza" name="larghezza">
+          <% Object.keys(LARGHEZZE).forEach(function (k) { %>
+            <option value="<%= k %>" <%- s.larghezza === k ? 'selected' : '' %>><%= LARGHEZZE[k].nome %></option>
+          <% }) %>
+        </select>
       </div>
-      <p class="data" style="margin:.6rem 0 0">Due blocchi "metà" uno dopo l'altro si mettono affiancati. Se resta spaiato, si allarga da solo.</p>
-    </fieldset>
+      <div>
+        <label for="vert">Posizione nella riga
+          <span class="aiuto">Quando è affiancato a un blocco più alto.</span>
+        </label>
+        <select id="vert" name="vert">
+          <% Object.keys(VERTICALI).forEach(function (k) { %>
+            <option value="<%= k %>" <%- s.vert === k ? 'selected' : '' %>><%= VERTICALI[k] %></option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
   <% } %>
 
   <fieldset>

@@ -110,6 +110,7 @@ alter table sezioni add column if not exists posizione text not null default 'de
 alter table sezioni add column if not exists dimensione text not null default 'media';
 alter table sezioni add column if not exists allineamento text not null default 'sinistra';
 alter table sezioni add column if not exists dimensione_titolo text not null default 'normale';
+alter table sezioni add column if not exists vert text not null default 'alto';
 
 create table if not exists richieste (
   id                serial primary key,
