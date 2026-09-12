@@ -8,6 +8,11 @@
   --grigio: #7c6670;
   --salvia: #5f7f68;
   --miele: #a9761a;
+  --raggio: 18px;
+  --raggio-piccolo: 10px;
+  --barra: #fff8fa;
+  --titolo: #8e3a5c;
+  --scala: 17px;
   --titoli: 'Fraunces', Georgia, serif;
   --testo: 'Karla', system-ui, sans-serif;
   --ombra: 0 1px 0 rgba(142, 58, 92, 0.06), 0 10px 30px -18px rgba(142, 58, 92, 0.35);
@@ -22,11 +27,12 @@ body {
   background: var(--carta);
   color: var(--inchiostro);
   font-family: var(--testo);
-  font-size: 17px;
+  font-size: var(--scala);
   line-height: 1.6;
 }
 
 h1, h2, h3 {
+  color: var(--titolo);
   font-family: var(--titoli);
   font-weight: 600;
   line-height: 1.15;
@@ -61,7 +67,7 @@ section + section { margin-top: 3.5rem; }
 
 .barra {
   border-bottom: 1px solid var(--velo);
-  background: var(--carta);
+  background: var(--barra);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -122,7 +128,7 @@ section + section { margin-top: 3.5rem; }
   padding: 1.15rem 1.2rem 1.3rem;
   background: var(--velo);
   border: 1px solid transparent;
-  border-radius: 20px;
+  border-radius: var(--raggio);
   text-decoration: none;
   color: var(--inchiostro);
 }
@@ -145,7 +151,7 @@ section + section { margin-top: 3.5rem; }
 .scheda {
   background: #fff;
   border: 1px solid var(--velo);
-  border-radius: 18px;
+  border-radius: var(--raggio);
   padding: 1.2rem;
   box-shadow: var(--ombra);
   display: flex;
@@ -159,7 +165,7 @@ section + section { margin-top: 3.5rem; }
   width: 52px;
   height: 52px;
   flex: none;
-  border-radius: 16px;
+  border-radius: var(--raggio);
   background: var(--velo);
   color: var(--prugna);
   font-family: var(--titoli);
@@ -226,7 +232,7 @@ input[type='date'], input[type='time'], input[type='tel'], textarea, select {
   width: 100%;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--rosa);
-  border-radius: 10px;
+  border-radius: var(--raggio-piccolo);
   background: #fff;
   font: inherit;
   color: inherit;
@@ -234,7 +240,7 @@ input[type='date'], input[type='time'], input[type='tel'], textarea, select {
 
 textarea { min-height: 6.5rem; resize: vertical; }
 
-fieldset { border: 1px solid var(--velo); border-radius: 14px; padding: 0.9rem 1rem 1.1rem; margin: 0; }
+fieldset { border: 1px solid var(--velo); border-radius: var(--raggio); padding: 0.9rem 1rem 1.1rem; margin: 0; }
 legend { font-size: 0.92rem; font-weight: 700; padding: 0 0.4rem; }
 
 .caselle { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; }
@@ -246,7 +252,7 @@ legend { font-size: 0.92rem; font-weight: 700; padding: 0 0.4rem; }
 .avviso {
   margin: 1.2rem 0 0;
   padding: 0.8rem 1rem;
-  border-radius: 14px;
+  border-radius: var(--raggio);
   background: var(--velo);
   border: 1px solid var(--rosa);
   color: var(--prugna-scuro);
@@ -262,7 +268,7 @@ legend { font-size: 0.92rem; font-weight: 700; padding: 0 0.4rem; }
 
 .vuoto {
   border: 1px dashed var(--rosa);
-  border-radius: 16px;
+  border-radius: var(--raggio);
   padding: 1.4rem;
   color: var(--grigio);
   background: #fffcfd;
@@ -274,7 +280,7 @@ legend { font-size: 0.92rem; font-weight: 700; padding: 0 0.4rem; }
 
 .giorno {
   border: 1px solid var(--velo);
-  border-radius: 16px;
+  border-radius: var(--raggio);
   background: #fff;
   padding: 0.85rem 1rem;
 }
@@ -311,7 +317,7 @@ td form { display: inline; }
 .sommario { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 1.2rem; list-style: none; padding: 0; }
 .sommario li {
   background: var(--velo);
-  border-radius: 14px;
+  border-radius: var(--raggio);
   padding: 0.7rem 1.1rem;
   font-size: 0.92rem;
 }
@@ -349,6 +355,38 @@ td form { display: inline; }
 .testo-lungo li { margin-bottom: 0.35rem; }
 
 .campione { display: flex; align-items: center; gap: 0.6rem; }
-.campione input[type='color'] { width: 3.2rem; height: 2.4rem; padding: 0.15rem; border-radius: 10px; border: 1px solid var(--rosa); background: #fff; }
+.campione input[type='color'] { width: 3.2rem; height: 2.4rem; padding: 0.15rem; border-radius: var(--raggio-piccolo); border: 1px solid var(--rosa); background: #fff; }
 .campione code { font-size: 0.85rem; color: var(--grigio); }
 .scorciatoie { display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none; padding: 0; margin: 1.2rem 0 0; }
+
+/* ---------- immagini ---------- */
+
+figure { margin: 1.8rem 0; }
+figure img { width: 100%; height: auto; border-radius: var(--raggio); display: block; }
+figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
+
+.copertina { width: 100%; height: auto; border-radius: var(--raggio); display: block; margin: 1.5rem 0; }
+.copertina--piccola { max-width: 22rem; }
+
+.libreria { list-style: none; padding: 0; margin: 2rem 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; }
+.libreria li { border: 1px solid var(--velo); border-radius: var(--raggio); padding: 0.7rem; background: #fff; }
+.libreria img { width: 100%; height: 130px; object-fit: cover; border-radius: var(--raggio-piccolo); display: block; }
+.libreria .nome { font-size: 0.88rem; margin: 0.5rem 0 0.3rem; word-break: break-word; }
+.libreria code { background: var(--velo); border-radius: 6px; padding: 0.1rem 0.35rem; font-size: 0.85rem; }
+
+/* elenco blog: schede e griglia */
+.articoli--schede li, .articoli--griglia li {
+  border: 1px solid var(--velo);
+  border-bottom: 1px solid var(--velo);
+  border-radius: var(--raggio);
+  background: #fff;
+  padding: 1rem;
+  box-shadow: var(--ombra);
+}
+.articoli--schede { max-width: 42rem; }
+.articoli--griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); max-width: none; }
+.articoli--schede img, .articoli--griglia img {
+  width: 100%; height: 170px; object-fit: cover;
+  border-radius: var(--raggio-piccolo); display: block; margin-bottom: 0.7rem;
+}
+.pagina-blog { background: var(--blog-sfondo); }

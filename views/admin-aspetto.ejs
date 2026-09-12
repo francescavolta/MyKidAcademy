@@ -2,7 +2,7 @@
 
 <p style="margin-top:1.5rem"><a href="/area/coordinamento">← Coordinamento</a></p>
 <h1>Aspetto del sito</h1>
-<p class="guida">Cambia colori, caratteri e i testi della home. Vale per tutte le pagine, anche il blog.</p>
+<p class="guida">Colori, caratteri, forma dei riquadri e testi. L'ultimo gruppo riguarda solo il blog. Salva e ricarica una pagina per vedere il risultato.</p>
 
 <form class="modulo larga" method="post" action="/area/coordinamento/aspetto" style="max-width:44rem">
   <% GRUPPI_ASPETTO.forEach(function (g) { %>
@@ -26,6 +26,12 @@
                   <option value="<%= k %>" <%- cfg[c.chiave] === k ? 'selected' : '' %>><%= FONT[k].nome %></option>
                 <% }) %>
               </select>
+            <% } else if (c.tipo === 'scelta') { %>
+              <select id="<%= c.chiave %>" name="<%= c.chiave %>">
+                <% Object.keys(c.opzioni).forEach(function (k) { %>
+                  <option value="<%= k %>" <%- cfg[c.chiave] === k ? 'selected' : '' %>><%= c.opzioni[k] %></option>
+                <% }) %>
+              </select>
             <% } else if (c.tipo === 'area') { %>
               <textarea id="<%= c.chiave %>" name="<%= c.chiave %>" style="min-height:5rem"><%= cfg[c.chiave] %></textarea>
             <% } else { %>
@@ -40,6 +46,7 @@
   <div class="riga-azioni">
     <button class="bottone" type="submit">Salva l'aspetto</button>
     <a class="bottone chiaro" href="/" target="_blank" rel="noopener">Apri la home</a>
+    <a class="bottone chiaro" href="/blog" target="_blank" rel="noopener">Apri il blog</a>
   </div>
 </form>
 

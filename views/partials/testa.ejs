@@ -11,14 +11,21 @@
 <link rel="stylesheet" href="/style.css">
 <style>
   :root {
-    --carta: <%= cfg.colore_carta %>;
+    --carta: <%= percorso.startsWith('/blog') ? cfg.colore_blog_sfondo : cfg.colore_carta %>;
+    --barra: <%= cfg.colore_barra %>;
     --velo: <%= cfg.colore_velo %>;
     --rosa: <%= cfg.colore_rosa %>;
+    --titolo: <%= cfg.colore_titolo %>;
     --prugna: <%= cfg.colore_prugna %>;
     --prugna-scuro: <%= scurisci(cfg.colore_prugna) %>;
     --inchiostro: <%= cfg.colore_inchiostro %>;
+    --grigio: <%= cfg.colore_grigio %>;
+    --raggio: <%= RAGGI[cfg.raggio] %>;
+    --raggio-piccolo: <%= cfg.raggio === 'netto' ? '3px' : '10px' %>;
+    --scala: <%= SCALE[cfg.scala] %>;
     --titoli: <%- font.titoli %>;
     --testo: <%- font.testo %>;
+    <% if (cfg.ombre === 'no') { %>--ombra: none;<% } %>
   }
 </style>
 </head>

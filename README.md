@@ -89,18 +89,32 @@ Serve un PostgreSQL raggiungibile. Se usi quello di Render dall'esterno, prendi 
 | `views/admin-aspetto.ejs` | la pagina "Aspetto del sito" nel coordinamento |
 | `views/` | le pagine. `partials/campi-tutor.ejs` è il modulo condiviso tra candidatura, area tutor e scheda del coordinamento |
 
-## Aspetto e blog
+## Aspetto, immagini e blog
 
-Dall'area coordinamento trovi due scorciatoie in cima:
+In cima all'area coordinamento ci sono tre scorciatoie.
 
-- **Aspetto del sito** — colori (sfondo, riquadri, bordi, pulsanti, testo), scelta fra quattro coppie di caratteri, nome del sito, titolo e frase della home, email di contatto, riga del piè di pagina. C'è anche "Ripristina tutto come all'inizio". Le impostazioni stanno nella tabella `impostazioni`, non nel codice: cambiarle non richiede un deploy.
-- **Blog** — scrivi, salvi come bozza (la vedi solo tu) o pubblichi. Nel testo: riga vuota fra i paragrafi, `## ` per un sottotitolo, `- ` per un elenco, `**parola**` per il grassetto. L'indirizzo della pagina si genera dal titolo.
+**Aspetto del sito**, in cinque gruppi:
 
-Per aggiungere una coppia di caratteri: array `FONT` in cima a `server.js`. Per aggiungere un campo modificabile: array `CAMPI_ASPETTO`, accanto.
+| Gruppo | Cosa cambi |
+|---|---|
+| Testi | nome del sito, titolo e frase della home, email di contatto, riga in fondo |
+| Caratteri | dieci coppie di caratteri, dimensione del testo (normale o grande) |
+| Colori | sfondo pagine, sfondo barra, riquadri, bordi, titoli, pulsanti, testo, testo secondario |
+| Forme | angoli dei riquadri (morbidi, molto tondi, netti), ombre sì/no |
+| Blog | titolo e frase della pagina blog, impaginazione dell'elenco (elenco, schede, griglia), data sì/no, copertina grande o piccola, sfondo solo per le pagine del blog |
+
+C'è "Ripristina tutto come all'inizio". Tutto sta nella tabella `impostazioni`: cambiare aspetto non richiede un deploy.
+
+**Immagini** — carica JPG, PNG, WEBP o GIF fino a 3 MB. Stanno nel database (tabella `immagini`, colonna `bytea`) e non nel disco del servizio, che su Render si azzera a ogni deploy. Ogni immagine mostra il suo codice `[img:N]`. La pagina indica anche quanti MB stai occupando: controllalo, lo spazio del piano Postgres non è infinito.
+
+**Blog** — bozza o online. Nel testo: riga vuota fra i paragrafi, `## ` per un sottotitolo, `- ` per un elenco, `**parola**` per il grassetto, `[img:3]` su una riga da sola per un'immagine, `[img:3|didascalia]` con didascalia. Ogni articolo può avere un'immagine di copertina scelta dalla libreria.
+
+Per aggiungere una coppia di caratteri: array `FONT` in cima a `server.js`. Per aggiungere una voce modificabile: `CAMPI_ASPETTO`, accanto — i tipi sono `testo`, `area`, `colore`, `font`, `scelta`.
 
 ## Prossimi pezzi, quando servono
 
 - **Email automatiche** (avviso quando arriva una candidatura o una richiesta): un servizio tipo Resend, ~20 righe in `server.js`.
-- **Foto delle ragazze**: ora c'è il monogramma con le iniziali. Per le foto serve uno storage esterno (Cloudinary o S3), perché il disco di Render si azzera ad ogni deploy.
+- **Foto delle ragazze**: ora c'è il monogramma con le iniziali. Si può usare la stessa libreria immagini del blog.
+- **Rimpicciolire le immagini al caricamento**: oggi il limite è 3 MB e ridimensioni tu. Con `sharp` si fa lato server.
 - **Recupero password**: oggi la reimposti tu dal coordinamento (o la ragazza si registra di nuovo). Con le email diventa automatico.
 - **Calendario a griglia mensile**: ora è un'agenda per giorno, più leggibile su telefono.

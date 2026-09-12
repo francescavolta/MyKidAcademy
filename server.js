@@ -5,6 +5,7 @@ const express = require('express');
 const session = require('express-session');
 const PgStore = require('connect-pg-simple')(session);
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
 const { pool, initDb } = require('./db');
 
 const app = express();
@@ -46,8 +47,42 @@ const FONT = {
     query: 'family=Quicksand:wght@500;700',
     titoli: "'Quicksand', system-ui, sans-serif",
     testo: "'Quicksand', system-ui, sans-serif"
+  },
+  'nunito': {
+    nome: 'Nunito — morbido e leggibile',
+    query: 'family=Nunito:wght@400;600;800',
+    titoli: "'Nunito', system-ui, sans-serif",
+    testo: "'Nunito', system-ui, sans-serif"
+  },
+  'lora-inter': {
+    nome: 'Lora + Inter — sobrio da rivista',
+    query: 'family=Lora:wght@500;600&family=Inter:wght@400;600',
+    titoli: "'Lora', Georgia, serif",
+    testo: "'Inter', system-ui, sans-serif"
+  },
+  'baskerville-worksans': {
+    nome: 'Libre Baskerville + Work Sans — tradizionale',
+    query: 'family=Libre+Baskerville:wght@400;700&family=Work+Sans:wght@400;600',
+    titoli: "'Libre Baskerville', Georgia, serif",
+    testo: "'Work Sans', system-ui, sans-serif"
+  },
+  'poppins-inter': {
+    nome: 'Poppins + Inter — moderno e geometrico',
+    query: 'family=Poppins:wght@500;600&family=Inter:wght@400;600',
+    titoli: "'Poppins', system-ui, sans-serif",
+    testo: "'Inter', system-ui, sans-serif"
+  },
+  'comfortaa-rubik': {
+    nome: 'Comfortaa + Rubik — infanzia',
+    query: 'family=Comfortaa:wght@500;700&family=Rubik:wght@400;600',
+    titoli: "'Comfortaa', system-ui, sans-serif",
+    testo: "'Rubik', system-ui, sans-serif"
   }
 };
+
+const RAGGI = { morbido: '18px', tondo: '28px', netto: '3px' };
+const SCALE = { normale: '17px', grande: '19px' };
+const IMPAGINAZIONI_BLOG = { elenco: 'Elenco semplice', schede: 'Schede con immagine', griglia: 'Griglia di riquadri' };
 
 const CAMPI_ASPETTO = [
   { chiave: 'nome_sito', gruppo: 'Testi', label: 'Nome del sito', tipo: 'testo', def: 'MyKidAcademy' },
@@ -55,15 +90,31 @@ const CAMPI_ASPETTO = [
   { chiave: 'sottotitolo_home', gruppo: 'Testi', label: 'Frase sotto il titolo', tipo: 'area', def: 'Selezioniamo noi le ragazze che collaborano con noi, una per una. Tu scegli di cosa hai bisogno, guardi chi è libera e ci pensiamo noi a organizzare.' },
   { chiave: 'email_contatto', gruppo: 'Testi', label: 'Email di contatto', tipo: 'testo', def: 'ciao@esempio.it' },
   { chiave: 'testo_piede', gruppo: 'Testi', label: 'Riga in fondo alle pagine', tipo: 'testo', def: 'ripetizioni, aiuto compiti, babysitter e aiuto in casa.' },
-  { chiave: 'font', gruppo: 'Caratteri', label: 'Caratteri del sito', tipo: 'font', def: 'fraunces-karla' },
+
+  { chiave: 'font', gruppo: 'Caratteri', label: 'Coppia di caratteri', tipo: 'font', def: 'fraunces-karla' },
+  { chiave: 'scala', gruppo: 'Caratteri', label: 'Dimensione del testo', tipo: 'scelta', opzioni: { normale: 'Normale', grande: 'Grande (più leggibile)' }, def: 'normale' },
+
   { chiave: 'colore_carta', gruppo: 'Colori', label: 'Sfondo delle pagine', tipo: 'colore', def: '#fff8fa' },
+  { chiave: 'colore_barra', gruppo: 'Colori', label: 'Sfondo della barra in alto', tipo: 'colore', def: '#fff8fa' },
   { chiave: 'colore_velo', gruppo: 'Colori', label: 'Riquadri e riempimenti', tipo: 'colore', def: '#fbe7ee' },
   { chiave: 'colore_rosa', gruppo: 'Colori', label: 'Bordi e etichette', tipo: 'colore', def: '#f0bfd0' },
-  { chiave: 'colore_prugna', gruppo: 'Colori', label: 'Titoli e pulsanti', tipo: 'colore', def: '#8e3a5c' },
-  { chiave: 'colore_inchiostro', gruppo: 'Colori', label: 'Testo normale', tipo: 'colore', def: '#34222b' }
+  { chiave: 'colore_titolo', gruppo: 'Colori', label: 'Titoli', tipo: 'colore', def: '#8e3a5c' },
+  { chiave: 'colore_prugna', gruppo: 'Colori', label: 'Pulsanti e link', tipo: 'colore', def: '#8e3a5c' },
+  { chiave: 'colore_inchiostro', gruppo: 'Colori', label: 'Testo normale', tipo: 'colore', def: '#34222b' },
+  { chiave: 'colore_grigio', gruppo: 'Colori', label: 'Testo secondario e date', tipo: 'colore', def: '#7c6670' },
+
+  { chiave: 'raggio', gruppo: 'Forme', label: 'Angoli dei riquadri', tipo: 'scelta', opzioni: { morbido: 'Morbidi', tondo: 'Molto tondi', netto: 'Netti' }, def: 'morbido' },
+  { chiave: 'ombre', gruppo: 'Forme', label: 'Ombre sotto i riquadri', tipo: 'scelta', opzioni: { si: 'Sì', no: 'No' }, def: 'si' },
+
+  { chiave: 'titolo_blog', gruppo: 'Blog', label: 'Titolo della pagina blog', tipo: 'testo', def: 'Blog' },
+  { chiave: 'sottotitolo_blog', gruppo: 'Blog', label: 'Frase sotto il titolo', tipo: 'area', def: 'Consigli, avvisi e cose che vale la pena raccontare ai genitori.' },
+  { chiave: 'blog_impaginazione', gruppo: 'Blog', label: 'Come si vede l\'elenco', tipo: 'scelta', opzioni: IMPAGINAZIONI_BLOG, def: 'elenco' },
+  { chiave: 'blog_data', gruppo: 'Blog', label: 'Mostrare la data', tipo: 'scelta', opzioni: { si: 'Sì', no: 'No' }, def: 'si' },
+  { chiave: 'blog_copertina_grande', gruppo: 'Blog', label: 'Copertina a tutta larghezza nell\'articolo', tipo: 'scelta', opzioni: { si: 'Sì', no: 'No, piccola' }, def: 'si' },
+  { chiave: 'colore_blog_sfondo', gruppo: 'Blog', label: 'Sfondo delle pagine del blog', tipo: 'colore', def: '#fff8fa' }
 ];
 
-const GRUPPI_ASPETTO = ['Testi', 'Caratteri', 'Colori'];
+const GRUPPI_ASPETTO = ['Testi', 'Caratteri', 'Colori', 'Forme', 'Blog'];
 
 function scurisci(hex, quanto = 0.22) {
   const m = /^#([0-9a-f]{6})$/i.exec(String(hex || ''));
@@ -116,6 +167,14 @@ function corpoHtml(testo) {
       }
       if (righe.length === 1 && /^##\s+/.test(righe[0])) {
         return '<h2>' + inLinea(righe[0].replace(/^##\s+/, '')) + '</h2>';
+      }
+      const img = /^\[img:(\d+)(?:\|([^\]]*))?\]$/.exec(righe[0]);
+      if (righe.length === 1 && img) {
+        return (
+          '<figure><img src="/immagini/' + img[1] + '" alt="' + esc(img[2] || '') + '" loading="lazy">' +
+          (img[2] ? '<figcaption>' + esc(img[2]) + '</figcaption>' : '') +
+          '</figure>'
+        );
       }
       return '<p>' + righe.map(inLinea).join('<br>') + '</p>';
     })
@@ -170,6 +229,24 @@ app.use(
   })
 );
 
+const TIPI_IMMAGINE = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_IMMAGINE = 3 * 1024 * 1024;
+
+const caricaFile = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_IMMAGINE, files: 1 }
+}).single('file');
+
+// Racchiude multer per non far crollare la pagina quando il file è troppo grande.
+function riceviImmagine(req, res, next) {
+  caricaFile(req, res, (err) => {
+    if (err) {
+      req.erroreFile = err.code === 'LIMIT_FILE_SIZE' ? 'L\'immagine supera i 3 MB. Rimpiccioliscila e riprova.' : 'Caricamento non riuscito.';
+    }
+    next();
+  });
+}
+
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 function avvisa(req, testo, tipo = 'ok') {
@@ -183,6 +260,8 @@ app.use(
     res.locals.font = FONT[cfg.font];
     res.locals.FONT = FONT;
     res.locals.scurisci = scurisci;
+    res.locals.RAGGI = RAGGI;
+    res.locals.SCALE = SCALE;
     res.locals.corpoHtml = corpoHtml;
     res.locals.aCapo = (t) => esc(t).replace(/\n/g, '<br>');
     res.locals.titolo = cfg.nome_sito;
@@ -651,6 +730,67 @@ app.post(
   })
 );
 
+/* ---------- immagini ---------- */
+
+app.get(
+  '/immagini/:id',
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select tipo, dati from immagini where id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).end();
+    res.set('Content-Type', rows[0].tipo);
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(rows[0].dati);
+  })
+);
+
+app.get(
+  '/area/coordinamento/immagini',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select id, nome, tipo, peso, created_at from immagini order by created_at desc');
+    const { rows: spazio } = await pool.query('select coalesce(sum(peso), 0) as totale from immagini');
+    res.render('admin-immagini', { titolo: 'Immagini', immagini: rows, totale: Number(spazio[0].totale) });
+  })
+);
+
+app.post(
+  '/area/coordinamento/immagini',
+  soloAdmin,
+  riceviImmagine,
+  wrap(async (req, res) => {
+    if (req.erroreFile) {
+      avvisa(req, req.erroreFile, 'errore');
+      return res.redirect('/area/coordinamento/immagini');
+    }
+    if (!req.file) {
+      avvisa(req, 'Scegli un file prima di caricare.', 'errore');
+      return res.redirect('/area/coordinamento/immagini');
+    }
+    if (!TIPI_IMMAGINE.includes(req.file.mimetype)) {
+      avvisa(req, 'Vanno bene solo JPG, PNG, WEBP e GIF.', 'errore');
+      return res.redirect('/area/coordinamento/immagini');
+    }
+    await pool.query('insert into immagini (nome, tipo, peso, dati) values ($1,$2,$3,$4)', [
+      String(req.body.nome || req.file.originalname || 'immagine').trim().slice(0, 120),
+      req.file.mimetype,
+      req.file.size,
+      req.file.buffer
+    ]);
+    avvisa(req, 'Immagine caricata.');
+    res.redirect('/area/coordinamento/immagini');
+  })
+);
+
+app.post(
+  '/area/coordinamento/immagini/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('delete from immagini where id = $1', [req.params.id]);
+    avvisa(req, 'Immagine eliminata. Dove era inserita, ora non compare più.');
+    res.redirect('/area/coordinamento/immagini');
+  })
+);
+
 /* ---------- blog pubblico ---------- */
 
 app.get(
@@ -694,6 +834,7 @@ app.post(
       let v = String(req.body[c.chiave] == null ? '' : req.body[c.chiave]).trim();
       if (c.tipo === 'colore' && !/^#[0-9a-fA-F]{6}$/.test(v)) v = c.def;
       if (c.tipo === 'font' && !FONT[v]) v = c.def;
+      if (c.tipo === 'scelta' && !Object.keys(c.opzioni).includes(v)) v = c.def;
       if (c.tipo === 'testo') v = v.slice(0, 200);
       if (c.tipo === 'area') v = v.slice(0, 700);
       if (v === '') v = c.def;
@@ -731,12 +872,18 @@ app.get(
   })
 );
 
-app.get('/area/coordinamento/blog/nuovo', soloAdmin, (req, res) => {
-  res.render('admin-articolo', {
-    titolo: 'Nuovo articolo',
-    a: { id: null, titolo: '', slug: '', sommario: '', corpo: '', pubblicato: false }
-  });
-});
+app.get(
+  '/area/coordinamento/blog/nuovo',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows: immagini } = await pool.query('select id, nome from immagini order by created_at desc');
+    res.render('admin-articolo', {
+      titolo: 'Nuovo articolo',
+      a: { id: null, titolo: '', slug: '', sommario: '', corpo: '', pubblicato: false, immagine_id: null },
+      immagini
+    });
+  })
+);
 
 app.post(
   '/area/coordinamento/blog',
@@ -749,9 +896,9 @@ app.post(
     }
     const slug = await slugLibero(req.body.slug || titolo);
     const { rows } = await pool.query(
-      `insert into articoli (titolo, slug, sommario, corpo, pubblicato)
-       values ($1,$2,$3,$4,$5) returning id`,
-      [titolo, slug, String(req.body.sommario || '').trim().slice(0, 300), String(req.body.corpo || ''), req.body.pubblicato === 'si']
+      `insert into articoli (titolo, slug, sommario, corpo, pubblicato, immagine_id)
+       values ($1,$2,$3,$4,$5,$6) returning id`,
+      [titolo, slug, String(req.body.sommario || '').trim().slice(0, 300), String(req.body.corpo || ''), req.body.pubblicato === 'si', req.body.immagine_id || null]
     );
     avvisa(req, req.body.pubblicato === 'si' ? 'Articolo pubblicato.' : 'Bozza salvata: non è ancora visibile.');
     res.redirect(`/area/coordinamento/blog/${rows[0].id}`);
@@ -764,7 +911,8 @@ app.get(
   wrap(async (req, res) => {
     const { rows } = await pool.query('select * from articoli where id = $1', [req.params.id]);
     if (!rows[0]) return res.status(404).render('errore', { titolo: 'Non trovato', messaggio: 'Questo articolo non esiste.' });
-    res.render('admin-articolo', { titolo: rows[0].titolo, a: rows[0] });
+    const { rows: immagini } = await pool.query('select id, nome from immagini order by created_at desc');
+    res.render('admin-articolo', { titolo: rows[0].titolo, a: rows[0], immagini });
   })
 );
 
@@ -779,9 +927,9 @@ app.post(
     }
     const slug = await slugLibero(req.body.slug || titolo, req.params.id);
     await pool.query(
-      `update articoli set titolo=$1, slug=$2, sommario=$3, corpo=$4, pubblicato=$5, updated_at=now()
-       where id=$6`,
-      [titolo, slug, String(req.body.sommario || '').trim().slice(0, 300), String(req.body.corpo || ''), req.body.pubblicato === 'si', req.params.id]
+      `update articoli set titolo=$1, slug=$2, sommario=$3, corpo=$4, pubblicato=$5, immagine_id=$6, updated_at=now()
+       where id=$7`,
+      [titolo, slug, String(req.body.sommario || '').trim().slice(0, 300), String(req.body.corpo || ''), req.body.pubblicato === 'si', req.body.immagine_id || null, req.params.id]
     );
     avvisa(req, req.body.pubblicato === 'si' ? 'Articolo salvato e online.' : 'Salvato come bozza.');
     res.redirect(`/area/coordinamento/blog/${req.params.id}`);

@@ -58,6 +58,15 @@ create table if not exists impostazioni (
   valore text not null default ''
 );
 
+create table if not exists immagini (
+  id         serial primary key,
+  nome       text not null,
+  tipo       text not null,
+  peso       integer not null default 0,
+  dati       bytea not null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists articoli (
   id         serial primary key,
   titolo     text not null,
@@ -69,6 +78,7 @@ create table if not exists articoli (
   updated_at timestamptz not null default now()
 );
 create index if not exists articoli_pubblicati on articoli (pubblicato, created_at desc);
+alter table articoli add column if not exists immagine_id integer references immagini(id) on delete set null;
 
 create table if not exists richieste (
   id                serial primary key,
