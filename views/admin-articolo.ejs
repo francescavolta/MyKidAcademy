@@ -1,0 +1,49 @@
+<%- include('partials/testa') %>
+
+<p style="margin-top:1.5rem"><a href="/area/coordinamento/blog">← Blog</a></p>
+<h1><%= a.id ? 'Modifica articolo' : 'Nuovo articolo' %></h1>
+
+<form class="modulo larga" method="post" action="<%= a.id ? '/area/coordinamento/blog/' + a.id : '/area/coordinamento/blog' %>" style="max-width:44rem">
+  <div>
+    <label for="titolo">Titolo</label>
+    <input id="titolo" name="titolo" type="text" required value="<%= a.titolo %>">
+  </div>
+  <div>
+    <label for="sommario">Sommario
+      <span class="aiuto">Una o due righe: è quello che si legge nell'elenco del blog.</span>
+    </label>
+    <input id="sommario" name="sommario" type="text" maxlength="300" value="<%= a.sommario %>">
+  </div>
+  <div>
+    <label for="corpo">Articolo
+      <span class="aiuto">Scrivi normale. Riga vuota fra i paragrafi. Per un sottotitolo inizia la riga con <code>##</code>, per un elenco con <code>-</code>, e metti <code>**parola**</code> per il grassetto.</span>
+    </label>
+    <textarea id="corpo" name="corpo" style="min-height:20rem"><%= a.corpo %></textarea>
+  </div>
+  <div>
+    <label for="slug">Indirizzo della pagina
+      <span class="aiuto">Lascia vuoto e lo genero dal titolo.</span>
+    </label>
+    <input id="slug" name="slug" type="text" value="<%= a.slug %>" placeholder="come-scegliere-una-babysitter">
+  </div>
+  <fieldset>
+    <legend>Visibilità</legend>
+    <div class="caselle">
+      <label><input type="radio" name="pubblicato" value="no" <%- a.pubblicato ? '' : 'checked' %>> Bozza, la vedo solo io</label>
+      <label><input type="radio" name="pubblicato" value="si" <%- a.pubblicato ? 'checked' : '' %>> Online, visibile a tutti</label>
+    </div>
+  </fieldset>
+  <div class="riga-azioni">
+    <button class="bottone" type="submit">Salva</button>
+    <% if (a.id) { %><a class="bottone chiaro" href="/blog/<%= a.slug %>">Guarda la pagina</a><% } %>
+  </div>
+</form>
+
+<% if (a.id) { %>
+  <form method="post" action="/area/coordinamento/blog/<%= a.id %>/elimina" style="margin-top:2.5rem"
+        onsubmit="return confirm('Eliminare definitivamente questo articolo?')">
+    <button class="link-testo" type="submit">Elimina questo articolo</button>
+  </form>
+<% } %>
+
+<%- include('partials/piede') %>

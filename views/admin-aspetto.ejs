@@ -1,0 +1,51 @@
+<%- include('partials/testa') %>
+
+<p style="margin-top:1.5rem"><a href="/area/coordinamento">← Coordinamento</a></p>
+<h1>Aspetto del sito</h1>
+<p class="guida">Cambia colori, caratteri e i testi della home. Vale per tutte le pagine, anche il blog.</p>
+
+<form class="modulo larga" method="post" action="/area/coordinamento/aspetto" style="max-width:44rem">
+  <% GRUPPI_ASPETTO.forEach(function (g) { %>
+    <fieldset>
+      <legend><%= g %></legend>
+      <div class="modulo larga" style="gap:1rem">
+        <% CAMPI_ASPETTO.filter(function (c) { return c.gruppo === g; }).forEach(function (c) { %>
+          <div>
+            <label for="<%= c.chiave %>"><%= c.label %>
+              <% if (c.aiuto) { %><span class="aiuto"><%= c.aiuto %></span><% } %>
+            </label>
+
+            <% if (c.tipo === 'colore') { %>
+              <div class="campione">
+                <input id="<%= c.chiave %>" name="<%= c.chiave %>" type="color" value="<%= cfg[c.chiave] %>">
+                <code><%= cfg[c.chiave] %></code>
+              </div>
+            <% } else if (c.tipo === 'font') { %>
+              <select id="<%= c.chiave %>" name="<%= c.chiave %>">
+                <% Object.keys(FONT).forEach(function (k) { %>
+                  <option value="<%= k %>" <%- cfg[c.chiave] === k ? 'selected' : '' %>><%= FONT[k].nome %></option>
+                <% }) %>
+              </select>
+            <% } else if (c.tipo === 'area') { %>
+              <textarea id="<%= c.chiave %>" name="<%= c.chiave %>" style="min-height:5rem"><%= cfg[c.chiave] %></textarea>
+            <% } else { %>
+              <input id="<%= c.chiave %>" name="<%= c.chiave %>" type="text" value="<%= cfg[c.chiave] %>">
+            <% } %>
+          </div>
+        <% }) %>
+      </div>
+    </fieldset>
+  <% }) %>
+
+  <div class="riga-azioni">
+    <button class="bottone" type="submit">Salva l'aspetto</button>
+    <a class="bottone chiaro" href="/" target="_blank" rel="noopener">Apri la home</a>
+  </div>
+</form>
+
+<form method="post" action="/area/coordinamento/aspetto/ripristina" style="margin-top:2.5rem"
+      onsubmit="return confirm('Tornare ai colori e ai testi di partenza?')">
+  <button class="link-testo" type="submit">Ripristina tutto come all'inizio</button>
+</form>
+
+<%- include('partials/piede') %>

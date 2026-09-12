@@ -1,0 +1,35 @@
+<%- include('partials/testa') %>
+
+<p style="margin-top:1.5rem"><a href="/area/coordinamento">← Coordinamento</a></p>
+<h1>Blog</h1>
+<p class="guida">Scrivi quando vuoi. Salvi come bozza e la vedi solo tu, pubblichi quando è pronta.</p>
+
+<p><a class="bottone" href="/area/coordinamento/blog/nuovo">Scrivi un articolo</a></p>
+
+<% if (articoli.length === 0) { %>
+  <div class="vuoto" style="margin-top:1.5rem"><p>Nessun articolo ancora. Il primo può essere una presentazione dell'agenzia.</p></div>
+<% } else { %>
+  <div class="tabella-avvolgi">
+    <table>
+      <thead><tr><th>Titolo</th><th>Stato</th><th>Data</th><th>Azioni</th></tr></thead>
+      <tbody>
+        <% articoli.forEach(function (a) { %>
+          <tr>
+            <td><a href="/area/coordinamento/blog/<%= a.id %>"><%= a.titolo %></a>
+              <% if (a.sommario) { %><br><span class="zona"><%= a.sommario %></span><% } %></td>
+            <td><span class="stato <%= a.pubblicato ? 'stato--approvato' : 'stato--in_attesa' %>"><%= a.pubblicato ? 'online' : 'bozza' %></span></td>
+            <td><%= new Date(a.created_at).toLocaleDateString('it-IT') %></td>
+            <td>
+              <div class="riga-azioni">
+                <a class="bottone piccolo chiaro" href="/area/coordinamento/blog/<%= a.id %>">Modifica</a>
+                <a class="bottone piccolo chiaro" href="/blog/<%= a.slug %>">Guarda</a>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('partials/piede') %>

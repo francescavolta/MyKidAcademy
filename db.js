@@ -53,6 +53,23 @@ create table if not exists disponibilita (
 );
 create index if not exists disponibilita_user_data on disponibilita (user_id, data);
 
+create table if not exists impostazioni (
+  chiave text primary key,
+  valore text not null default ''
+);
+
+create table if not exists articoli (
+  id         serial primary key,
+  titolo     text not null,
+  slug       text unique not null,
+  sommario   text not null default '',
+  corpo      text not null default '',
+  pubblicato boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists articoli_pubblicati on articoli (pubblicato, created_at desc);
+
 create table if not exists richieste (
   id                serial primary key,
   tutor_id          integer references users(id) on delete set null,

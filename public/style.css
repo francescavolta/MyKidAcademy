@@ -8,6 +8,8 @@
   --grigio: #7c6670;
   --salvia: #5f7f68;
   --miele: #a9761a;
+  --titoli: 'Fraunces', Georgia, serif;
+  --testo: 'Karla', system-ui, sans-serif;
   --ombra: 0 1px 0 rgba(142, 58, 92, 0.06), 0 10px 30px -18px rgba(142, 58, 92, 0.35);
 }
 
@@ -19,13 +21,13 @@ body {
   margin: 0;
   background: var(--carta);
   color: var(--inchiostro);
-  font-family: Karla, system-ui, sans-serif;
+  font-family: var(--testo);
   font-size: 17px;
   line-height: 1.6;
 }
 
 h1, h2, h3 {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--titoli);
   font-weight: 600;
   line-height: 1.15;
   margin: 0 0 0.4em;
@@ -74,7 +76,7 @@ section + section { margin-top: 3.5rem; }
 }
 
 .marchio {
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--titoli);
   font-size: 1.35rem;
   font-weight: 600;
   color: var(--prugna);
@@ -126,7 +128,7 @@ section + section { margin-top: 3.5rem; }
 }
 
 .scelta a:hover { border-color: var(--rosa); background: #fdf0f4; }
-.scelta strong { display: block; font-family: Fraunces, Georgia, serif; font-size: 1.1rem; color: var(--prugna); }
+.scelta strong { display: block; font-family: var(--titoli); font-size: 1.1rem; color: var(--prugna); }
 .scelta small { color: var(--grigio); font-size: 0.9rem; line-height: 1.45; display: block; margin-top: 0.3rem; }
 
 /* ---------- schede tutor ---------- */
@@ -160,7 +162,7 @@ section + section { margin-top: 3.5rem; }
   border-radius: 16px;
   background: var(--velo);
   color: var(--prugna);
-  font-family: Fraunces, Georgia, serif;
+  font-family: var(--titoli);
   font-size: 1.15rem;
   display: grid;
   place-items: center;
@@ -169,7 +171,7 @@ section + section { margin-top: 3.5rem; }
 .scheda h3 { margin: 0; }
 .scheda .zona { color: var(--grigio); font-size: 0.9rem; }
 .scheda .testo { color: var(--grigio); font-size: 0.95rem; margin: 0; }
-.scheda .tariffa { font-family: Fraunces, Georgia, serif; color: var(--prugna); }
+.scheda .tariffa { font-family: var(--titoli); color: var(--prugna); }
 
 .etichette { display: flex; flex-wrap: wrap; gap: 0.35rem; list-style: none; padding: 0; margin: 0; }
 
@@ -313,7 +315,7 @@ td form { display: inline; }
   padding: 0.7rem 1.1rem;
   font-size: 0.92rem;
 }
-.sommario b { font-family: Fraunces, Georgia, serif; font-size: 1.4rem; display: block; color: var(--prugna); }
+.sommario b { font-family: var(--titoli); font-size: 1.4rem; display: block; color: var(--prugna); }
 
 .due-colonne { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 2.5rem; align-items: start; }
 
@@ -325,3 +327,28 @@ td form { display: inline; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* ---------- blog ---------- */
+
+.articoli { list-style: none; padding: 0; margin: 2rem 0 0; display: grid; gap: 1.2rem; max-width: 42rem; }
+
+.articoli li {
+  border-bottom: 1px solid var(--velo);
+  padding-bottom: 1.2rem;
+}
+.articoli li:last-child { border-bottom: 0; }
+.articoli h2 { font-size: 1.45rem; margin-bottom: 0.2rem; }
+.articoli h2 a { text-decoration: none; }
+.articoli h2 a:hover { text-decoration: underline; }
+.data { color: var(--grigio); font-size: 0.88rem; }
+
+.testo-lungo { max-width: 34rem; }
+.testo-lungo h2 { font-size: 1.3rem; margin-top: 2rem; }
+.testo-lungo p { margin-bottom: 1.1rem; }
+.testo-lungo ul { padding-left: 1.2rem; }
+.testo-lungo li { margin-bottom: 0.35rem; }
+
+.campione { display: flex; align-items: center; gap: 0.6rem; }
+.campione input[type='color'] { width: 3.2rem; height: 2.4rem; padding: 0.15rem; border-radius: 10px; border: 1px solid var(--rosa); background: #fff; }
+.campione code { font-size: 0.85rem; color: var(--grigio); }
+.scorciatoie { display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none; padding: 0; margin: 1.2rem 0 0; }

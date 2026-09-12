@@ -86,7 +86,17 @@ Serve un PostgreSQL raggiungibile. Se usi quello di Render dall'esterno, prendi 
 | `server.js` | tutte le pagine e i permessi. Le mansioni sono l'array `MANSIONI` in cima: aggiungine una e compare in tutto il sito |
 | `db.js` | tabelle del database |
 | `public/style.css` | colori (`:root` in cima), tipografia, layout |
+| `views/admin-aspetto.ejs` | la pagina "Aspetto del sito" nel coordinamento |
 | `views/` | le pagine. `partials/campi-tutor.ejs` è il modulo condiviso tra candidatura, area tutor e scheda del coordinamento |
+
+## Aspetto e blog
+
+Dall'area coordinamento trovi due scorciatoie in cima:
+
+- **Aspetto del sito** — colori (sfondo, riquadri, bordi, pulsanti, testo), scelta fra quattro coppie di caratteri, nome del sito, titolo e frase della home, email di contatto, riga del piè di pagina. C'è anche "Ripristina tutto come all'inizio". Le impostazioni stanno nella tabella `impostazioni`, non nel codice: cambiarle non richiede un deploy.
+- **Blog** — scrivi, salvi come bozza (la vedi solo tu) o pubblichi. Nel testo: riga vuota fra i paragrafi, `## ` per un sottotitolo, `- ` per un elenco, `**parola**` per il grassetto. L'indirizzo della pagina si genera dal titolo.
+
+Per aggiungere una coppia di caratteri: array `FONT` in cima a `server.js`. Per aggiungere un campo modificabile: array `CAMPI_ASPETTO`, accanto.
 
 ## Prossimi pezzi, quando servono
 

@@ -1,0 +1,20 @@
+<%- include('partials/testa') %>
+
+<h1 style="margin-top:2rem">Blog</h1>
+<p class="guida">Consigli, avvisi e cose che vale la pena raccontare ai genitori.</p>
+
+<% if (articoli.length === 0) { %>
+  <div class="vuoto" style="margin-top:1.5rem"><p>Non c'è ancora nessun articolo. Torna a trovarci.</p></div>
+<% } else { %>
+  <ul class="articoli">
+    <% articoli.forEach(function (a) { %>
+      <li>
+        <h2><a href="/blog/<%= a.slug %>"><%= a.titolo %></a></h2>
+        <div class="data"><%= new Date(a.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) %></div>
+        <% if (a.sommario) { %><p style="margin-top:.5rem"><%= a.sommario %></p><% } %>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<%- include('partials/piede') %>

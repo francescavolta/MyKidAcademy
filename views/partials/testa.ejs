@@ -3,19 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><%= titolo %> · MyKidAcademy</title>
+<title><%= titolo %> · <%= cfg.nome_sito %></title>
 <meta name="description" content="Agenzia di ripetizioni, aiuto compiti, babysitter e aiuto in casa. Scegli la persona giusta e ti richiamiamo noi.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Karla:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?<%= font.query %>&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
+<style>
+  :root {
+    --carta: <%= cfg.colore_carta %>;
+    --velo: <%= cfg.colore_velo %>;
+    --rosa: <%= cfg.colore_rosa %>;
+    --prugna: <%= cfg.colore_prugna %>;
+    --prugna-scuro: <%= scurisci(cfg.colore_prugna) %>;
+    --inchiostro: <%= cfg.colore_inchiostro %>;
+    --titoli: <%- font.titoli %>;
+    --testo: <%- font.testo %>;
+  }
+</style>
 </head>
 <body>
 <header class="barra">
   <div class="contenitore">
-    <a class="marchio" href="/">MyKidAcademy</a>
+    <a class="marchio" href="/"><%= cfg.nome_sito %></a>
     <nav>
       <a href="/tutor" <%- percorso.startsWith('/tutor') ? 'aria-current="page"' : '' %>>Le nostre tutor</a>
+      <a href="/blog" <%- percorso.startsWith('/blog') ? 'aria-current="page"' : '' %>>Blog</a>
       <% if (!utente) { %>
         <a href="/lavora-con-noi">Lavora con noi</a>
         <a href="/accedi">Accedi</a>

@@ -21,6 +21,128 @@ const MANSIONI = [
 const ID_MANSIONI = MANSIONI.map((m) => m.id);
 const labelMansione = (id) => (MANSIONI.find((m) => m.id === id) || {}).label || id;
 
+
+const FONT = {
+  'fraunces-karla': {
+    nome: 'Fraunces + Karla — morbido (quello attuale)',
+    query: 'family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Karla:wght@400;700',
+    titoli: "'Fraunces', Georgia, serif",
+    testo: "'Karla', system-ui, sans-serif"
+  },
+  'dm': {
+    nome: 'DM Serif + DM Sans — pulito',
+    query: 'family=DM+Serif+Display&family=DM+Sans:wght@400;700',
+    titoli: "'DM Serif Display', Georgia, serif",
+    testo: "'DM Sans', system-ui, sans-serif"
+  },
+  'playfair': {
+    nome: 'Playfair + Lato — classico',
+    query: 'family=Playfair+Display:wght@500;700&family=Lato:wght@400;700',
+    titoli: "'Playfair Display', Georgia, serif",
+    testo: "'Lato', system-ui, sans-serif"
+  },
+  'quicksand': {
+    nome: 'Quicksand — tondo e amichevole',
+    query: 'family=Quicksand:wght@500;700',
+    titoli: "'Quicksand', system-ui, sans-serif",
+    testo: "'Quicksand', system-ui, sans-serif"
+  }
+};
+
+const CAMPI_ASPETTO = [
+  { chiave: 'nome_sito', gruppo: 'Testi', label: 'Nome del sito', tipo: 'testo', def: 'MyKidAcademy' },
+  { chiave: 'titolo_home', gruppo: 'Testi', label: 'Titolo grande in home', tipo: 'area', def: 'Una persona di fiducia\nper quello che serve a casa.', aiuto: 'Dove vai a capo tu, va a capo anche il sito.' },
+  { chiave: 'sottotitolo_home', gruppo: 'Testi', label: 'Frase sotto il titolo', tipo: 'area', def: 'Selezioniamo noi le ragazze che collaborano con noi, una per una. Tu scegli di cosa hai bisogno, guardi chi è libera e ci pensiamo noi a organizzare.' },
+  { chiave: 'email_contatto', gruppo: 'Testi', label: 'Email di contatto', tipo: 'testo', def: 'ciao@esempio.it' },
+  { chiave: 'testo_piede', gruppo: 'Testi', label: 'Riga in fondo alle pagine', tipo: 'testo', def: 'ripetizioni, aiuto compiti, babysitter e aiuto in casa.' },
+  { chiave: 'font', gruppo: 'Caratteri', label: 'Caratteri del sito', tipo: 'font', def: 'fraunces-karla' },
+  { chiave: 'colore_carta', gruppo: 'Colori', label: 'Sfondo delle pagine', tipo: 'colore', def: '#fff8fa' },
+  { chiave: 'colore_velo', gruppo: 'Colori', label: 'Riquadri e riempimenti', tipo: 'colore', def: '#fbe7ee' },
+  { chiave: 'colore_rosa', gruppo: 'Colori', label: 'Bordi e etichette', tipo: 'colore', def: '#f0bfd0' },
+  { chiave: 'colore_prugna', gruppo: 'Colori', label: 'Titoli e pulsanti', tipo: 'colore', def: '#8e3a5c' },
+  { chiave: 'colore_inchiostro', gruppo: 'Colori', label: 'Testo normale', tipo: 'colore', def: '#34222b' }
+];
+
+const GRUPPI_ASPETTO = ['Testi', 'Caratteri', 'Colori'];
+
+function scurisci(hex, quanto = 0.22) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(hex || ''));
+  if (!m) return '#6f2a46';
+  const n = parseInt(m[1], 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.max(0, Math.round(v * (1 - quanto))));
+  return '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
+let cacheCfg = null;
+let cacheCfgOra = 0;
+
+async function impostazioni(forza = false) {
+  if (!forza && cacheCfg && Date.now() - cacheCfgOra < 60000) return cacheCfg;
+  const cfg = {};
+  for (const c of CAMPI_ASPETTO) cfg[c.chiave] = c.def;
+  try {
+    const { rows } = await pool.query('select chiave, valore from impostazioni');
+    for (const r of rows) if (r.chiave in cfg && r.valore !== '') cfg[r.chiave] = r.valore;
+  } catch (e) {
+    console.error('Impostazioni non leggibili, uso i valori di default:', e.message);
+  }
+  if (!FONT[cfg.font]) cfg.font = 'fraunces-karla';
+  cacheCfg = cfg;
+  cacheCfgOra = Date.now();
+  return cfg;
+}
+
+function esc(t) {
+  return String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function inLinea(t) {
+  return esc(t)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|\s)\*([^*]+)\*/g, '$1<em>$2</em>');
+}
+
+// Da testo semplice a HTML: riga vuota = nuovo paragrafo, "## " = sottotitolo, "- " = elenco.
+function corpoHtml(testo) {
+  return String(testo || '')
+    .replace(/\r\n/g, '\n')
+    .split(/\n{2,}/)
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .map((b) => {
+      const righe = b.split('\n');
+      if (righe.every((r) => /^\s*[-*]\s+/.test(r))) {
+        return '<ul>' + righe.map((r) => '<li>' + inLinea(r.replace(/^\s*[-*]\s+/, '')) + '</li>').join('') + '</ul>';
+      }
+      if (righe.length === 1 && /^##\s+/.test(righe[0])) {
+        return '<h2>' + inLinea(righe[0].replace(/^##\s+/, '')) + '</h2>';
+      }
+      return '<p>' + righe.map(inLinea).join('<br>') + '</p>';
+    })
+    .join('\n');
+}
+
+function slugify(s) {
+  const base = String(s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 70);
+  return base || 'articolo';
+}
+
+async function slugLibero(titolo, idEscluso) {
+  const base = slugify(titolo);
+  for (let i = 0; i < 50; i++) {
+    const tentativo = i === 0 ? base : `${base}-${i + 1}`;
+    const { rows } = await pool.query('select id from articoli where slug = $1', [tentativo]);
+    if (!rows[0] || String(rows[0].id) === String(idEscluso)) return tentativo;
+  }
+  return `${base}-${Date.now()}`;
+}
+
 const STATI_RICHIESTA = ['nuova', 'in_corso', 'confermata', 'chiusa'];
 const STATI_UTENTE = ['in_attesa', 'approvato', 'rifiutato', 'sospeso'];
 
@@ -56,7 +178,14 @@ function avvisa(req, testo, tipo = 'ok') {
 
 app.use(
   wrap(async (req, res, next) => {
-    res.locals.titolo = 'MyKidAcademy';
+    const cfg = await impostazioni();
+    res.locals.cfg = cfg;
+    res.locals.font = FONT[cfg.font];
+    res.locals.FONT = FONT;
+    res.locals.scurisci = scurisci;
+    res.locals.corpoHtml = corpoHtml;
+    res.locals.aCapo = (t) => esc(t).replace(/\n/g, '<br>');
+    res.locals.titolo = cfg.nome_sito;
     res.locals.MANSIONI = MANSIONI;
     res.locals.labelMansione = labelMansione;
     res.locals.iniziali = (nome) =>
@@ -189,7 +318,7 @@ app.get(
   '/',
   wrap(async (req, res) => {
     const tutor = (await tutorPubblici()).slice(0, 6);
-    res.render('home', { titolo: 'MyKidAcademy', tutor });
+    res.render('home', { titolo: res.locals.cfg.nome_sito, tutor });
   })
 );
 
@@ -519,6 +648,153 @@ app.post(
     if (!STATI_RICHIESTA.includes(req.body.stato)) return res.redirect('/area/coordinamento');
     await pool.query('update richieste set stato=$1 where id=$2', [req.body.stato, req.params.id]);
     res.redirect(req.body.ritorno || '/area/coordinamento');
+  })
+);
+
+/* ---------- blog pubblico ---------- */
+
+app.get(
+  '/blog',
+  wrap(async (req, res) => {
+    const { rows } = await pool.query(
+      'select * from articoli where pubblicato = true order by created_at desc limit 50'
+    );
+    res.render('blog', { titolo: 'Blog', articoli: rows });
+  })
+);
+
+app.get(
+  '/blog/:slug',
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from articoli where slug = $1', [req.params.slug]);
+    const a = rows[0];
+    const suo = req.utente && req.utente.role === 'admin';
+    if (!a || (!a.pubblicato && !suo)) {
+      return res.status(404).render('errore', { titolo: 'Articolo non trovato', messaggio: 'Questo articolo non esiste o non è ancora pubblicato.' });
+    }
+    res.render('articolo', { titolo: a.titolo, a });
+  })
+);
+
+/* ---------- aspetto (solo admin) ---------- */
+
+app.get(
+  '/area/coordinamento/aspetto',
+  soloAdmin,
+  wrap(async (req, res) => {
+    res.render('admin-aspetto', { titolo: 'Aspetto del sito', CAMPI_ASPETTO, GRUPPI_ASPETTO });
+  })
+);
+
+app.post(
+  '/area/coordinamento/aspetto',
+  soloAdmin,
+  wrap(async (req, res) => {
+    for (const c of CAMPI_ASPETTO) {
+      let v = String(req.body[c.chiave] == null ? '' : req.body[c.chiave]).trim();
+      if (c.tipo === 'colore' && !/^#[0-9a-fA-F]{6}$/.test(v)) v = c.def;
+      if (c.tipo === 'font' && !FONT[v]) v = c.def;
+      if (c.tipo === 'testo') v = v.slice(0, 200);
+      if (c.tipo === 'area') v = v.slice(0, 700);
+      if (v === '') v = c.def;
+      await pool.query(
+        `insert into impostazioni (chiave, valore) values ($1, $2)
+         on conflict (chiave) do update set valore = excluded.valore`,
+        [c.chiave, v]
+      );
+    }
+    await impostazioni(true);
+    avvisa(req, 'Aspetto aggiornato. Apri la home per vederlo.');
+    res.redirect('/area/coordinamento/aspetto');
+  })
+);
+
+app.post(
+  '/area/coordinamento/aspetto/ripristina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('delete from impostazioni');
+    await impostazioni(true);
+    avvisa(req, 'Ripristinati i colori e i testi di partenza.');
+    res.redirect('/area/coordinamento/aspetto');
+  })
+);
+
+/* ---------- blog: scrittura (solo admin) ---------- */
+
+app.get(
+  '/area/coordinamento/blog',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from articoli order by created_at desc');
+    res.render('admin-blog', { titolo: 'Blog', articoli: rows });
+  })
+);
+
+app.get('/area/coordinamento/blog/nuovo', soloAdmin, (req, res) => {
+  res.render('admin-articolo', {
+    titolo: 'Nuovo articolo',
+    a: { id: null, titolo: '', slug: '', sommario: '', corpo: '', pubblicato: false }
+  });
+});
+
+app.post(
+  '/area/coordinamento/blog',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const titolo = String(req.body.titolo || '').trim();
+    if (!titolo) {
+      avvisa(req, 'Serve almeno il titolo per salvare l\'articolo.', 'errore');
+      return res.redirect('/area/coordinamento/blog/nuovo');
+    }
+    const slug = await slugLibero(req.body.slug || titolo);
+    const { rows } = await pool.query(
+      `insert into articoli (titolo, slug, sommario, corpo, pubblicato)
+       values ($1,$2,$3,$4,$5) returning id`,
+      [titolo, slug, String(req.body.sommario || '').trim().slice(0, 300), String(req.body.corpo || ''), req.body.pubblicato === 'si']
+    );
+    avvisa(req, req.body.pubblicato === 'si' ? 'Articolo pubblicato.' : 'Bozza salvata: non è ancora visibile.');
+    res.redirect(`/area/coordinamento/blog/${rows[0].id}`);
+  })
+);
+
+app.get(
+  '/area/coordinamento/blog/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from articoli where id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).render('errore', { titolo: 'Non trovato', messaggio: 'Questo articolo non esiste.' });
+    res.render('admin-articolo', { titolo: rows[0].titolo, a: rows[0] });
+  })
+);
+
+app.post(
+  '/area/coordinamento/blog/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const titolo = String(req.body.titolo || '').trim();
+    if (!titolo) {
+      avvisa(req, 'Il titolo non può restare vuoto.', 'errore');
+      return res.redirect(`/area/coordinamento/blog/${req.params.id}`);
+    }
+    const slug = await slugLibero(req.body.slug || titolo, req.params.id);
+    await pool.query(
+      `update articoli set titolo=$1, slug=$2, sommario=$3, corpo=$4, pubblicato=$5, updated_at=now()
+       where id=$6`,
+      [titolo, slug, String(req.body.sommario || '').trim().slice(0, 300), String(req.body.corpo || ''), req.body.pubblicato === 'si', req.params.id]
+    );
+    avvisa(req, req.body.pubblicato === 'si' ? 'Articolo salvato e online.' : 'Salvato come bozza.');
+    res.redirect(`/area/coordinamento/blog/${req.params.id}`);
+  })
+);
+
+app.post(
+  '/area/coordinamento/blog/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('delete from articoli where id = $1', [req.params.id]);
+    avvisa(req, 'Articolo eliminato.');
+    res.redirect('/area/coordinamento/blog');
   })
 );
 

@@ -1,0 +1,12 @@
+<%- include('partials/testa') %>
+
+<p style="margin-top:1.5rem"><a href="/blog">← Tutti gli articoli</a></p>
+<article class="testo-lungo">
+  <h1><%= a.titolo %></h1>
+  <div class="data"><%= new Date(a.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) %></div>
+  <% if (!a.pubblicato) { %><p class="avviso avviso--errore">Questa è una bozza: la vedi solo tu perché sei nel coordinamento.</p><% } %>
+  <% if (a.sommario) { %><p style="margin-top:1.2rem;font-size:1.1rem;color:var(--grigio)"><%= a.sommario %></p><% } %>
+  <%- corpoHtml(a.corpo) %>
+</article>
+
+<%- include('partials/piede') %>

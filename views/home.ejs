@@ -1,8 +1,8 @@
 <%- include('partials/testa') %>
 
 <section class="hero">
-  <h1>Una persona di fiducia<br>per quello che serve a casa.</h1>
-  <p class="guida">Selezioniamo noi le ragazze che collaborano con noi, una per una. Tu scegli di cosa hai bisogno, guardi chi è libera e ci pensiamo noi a organizzare.</p>
+  <h1><%- aCapo(cfg.titolo_home) %></h1>
+  <p class="guida"><%= cfg.sottotitolo_home %></p>
 
   <ul class="scelta">
     <% MANSIONI.forEach(function (m) { %>
