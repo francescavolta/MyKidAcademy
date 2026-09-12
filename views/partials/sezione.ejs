@@ -1,3 +1,4 @@
+<div class="blocco all--<%= s.allineamento %> tit--<%= s.dimensione_titolo %>">
 <% if (s.tipo === 'mansioni') { %>
   <% if (s.titolo) { %><h2><%= s.titolo %></h2><% } %>
   <ul class="scelta">
@@ -59,7 +60,7 @@
 
 <% } else if (s.tipo === 'immagine') { %>
   <% if (s.immagine_id) { %>
-    <figure style="margin-top:0">
+    <figure class="fig fig--<%= s.dimensione %> fig--all-<%= s.allineamento %>">
       <img src="/immagini/<%= s.immagine_id %>" alt="<%= s.titolo %>" loading="lazy">
       <% if (s.titolo) { %><figcaption><%= s.titolo %></figcaption><% } %>
     </figure>
@@ -74,7 +75,7 @@
 
 <% } else { %>
   <% if (s.immagine_id) { %>
-    <div class="blocco-con-foto">
+    <div class="blocco-con-foto foto--<%= s.posizione %> foto--<%= s.dimensione %>">
       <div>
         <% if (s.titolo) { %><h2><%= s.titolo %></h2><% } %>
         <%- corpoHtml(s.corpo) %>
@@ -86,3 +87,5 @@
     <%- corpoHtml(s.corpo) %>
   <% } %>
 <% } %>
+
+</div>

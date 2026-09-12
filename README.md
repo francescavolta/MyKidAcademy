@@ -110,7 +110,7 @@ In cima all'area coordinamento ci sono tre scorciatoie.
 | Gruppo | Cosa cambi |
 |---|---|
 | Testi | nome del sito, email di contatto, riga in fondo |
-| Home | titolo e frase, immagine principale con tre modi di mostrarla (accanto al titolo, larga sotto, come sfondo col titolo sopra), seconda immagine in fondo |
+| Home | titolo e frase, allineamento del titolo, immagine principale con tre modi di mostrarla (accanto al titolo, larga sotto, come sfondo col titolo sopra) e tre grandezze, scritta del link al blog |
 | Caratteri | dieci coppie di caratteri, dimensione del testo (normale o grande) |
 | Colori | sfondo pagine, sfondo barra, riquadri, bordi, titoli, pulsanti, testo, testo secondario |
 | Forme | angoli dei riquadri (morbidi, molto tondi, netti), ombre sì/no |
@@ -129,7 +129,17 @@ C'è "Ripristina tutto come all'inizio". Tutto sta nella tabella `impostazioni`:
 | Ultimi articoli del blog | i tre articoli pubblicati più recenti |
 | Invito con pulsante | titolo, testo e un pulsante verso una pagina |
 
-Ogni blocco è a tutta larghezza o a metà: due blocchi a metà consecutivi finiscono affiancati. I blocchi di partenza (che riproducono la home originale) vengono creati al primo avvio da `assicuraSezioni()` e solo se la tabella è vuota.
+Ogni blocco, oltre ai suoi contenuti, ha i comandi di impaginazione:
+
+| Comando | Valori | Colonna |
+|---|---|---|
+| Dove sta l'immagine | a destra, a sinistra, sopra, sotto il testo | `posizione` |
+| Quanto grande (immagine) | piccola, media, grande, tutta la larghezza | `dimensione` |
+| Allineamento del testo | a sinistra, centrato, a destra | `allineamento` |
+| Grandezza del titolo | piccolo, normale, grande | `dimensione_titolo` |
+| Larghezza del blocco | tutta, metà | `larghezza` |
+
+Sono classi CSS (`foto--sinistra`, `fig--piccola`, `all--centro`, `tit--grande`) definite in fondo a `style.css`: per aggiungere un valore, va messo nell'elenco corrispondente in `server.js` (`POSIZIONI_FOTO`, `DIMENSIONI_FOTO`, `ALLINEAMENTI`, `DIMENSIONI_TITOLO`) e gli va scritta la regola CSS. Sotto i 760 px l'immagine va sempre sopra il testo, altrimenti su telefono le colonne diventano illeggibili. Due blocchi a metà consecutivi finiscono affiancati. I blocchi di partenza (che riproducono la home originale) vengono creati al primo avvio da `assicuraSezioni()` e solo se la tabella è vuota.
 
 **Immagini** — JPG, PNG, WEBP o GIF. Il browser rimpicciolisce il file prima di spedirlo (lato lungo 1800 px, JPEG qualità 0.82, in `public/carica-immagine.js`): una foto da 6 MB arriva a qualche centinaio di KB. Le GIF e i file sotto 900 KB passano intatti. Il limite del server è 12 MB (`MAX_IMMAGINE` in `server.js`), ed è solo una rete di sicurezza. Le immagini stanno nel database (tabella `immagini`, colonna `bytea`), non nel disco del servizio, che su Render si azzera a ogni deploy. Ogni immagine mostra il suo codice `[img:N]`. Tieni d'occhio i MB occupati indicati in cima all'elenco.
 

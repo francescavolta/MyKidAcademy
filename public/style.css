@@ -597,3 +597,53 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
 }
 .lascia-referenza summary { cursor: pointer; color: var(--prugna); font-weight: 700; }
 .lascia-referenza[open] summary { margin-bottom: 0.8rem; }
+
+/* ---------- posizione e grandezza nei blocchi ---------- */
+
+.all--centro { text-align: center; }
+.all--centro p, .all--centro .guida { margin-left: auto; margin-right: auto; }
+.all--centro .scelta, .all--centro .griglia, .all--centro .articoli { text-align: left; }
+.all--destra { text-align: right; }
+.all--destra p { margin-left: auto; }
+
+.tit--piccolo h2 { font-size: 1.15rem; }
+.tit--grande h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); }
+
+/* immagine dentro un blocco di testo */
+.blocco-con-foto.foto--sinistra img { order: -1; }
+.blocco-con-foto.foto--sopra, .blocco-con-foto.foto--sotto { grid-template-columns: 1fr; }
+.blocco-con-foto.foto--sopra img { order: -1; }
+
+.blocco-con-foto.foto--piccola { grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); }
+.blocco-con-foto.foto--media { grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); }
+.blocco-con-foto.foto--grande { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); }
+.blocco-con-foto.foto--piena { grid-template-columns: 1fr; }
+
+.blocco-con-foto.foto--piccola img { max-height: 210px; }
+.blocco-con-foto.foto--media img { max-height: 320px; }
+.blocco-con-foto.foto--grande img { max-height: 440px; }
+.blocco-con-foto.foto--piena img { max-height: none; }
+
+/* blocco immagine da solo */
+.fig { margin: 0; }
+.fig--piccola { max-width: 20rem; }
+.fig--media { max-width: 34rem; }
+.fig--grande { max-width: 50rem; }
+.fig--piena { max-width: none; }
+.fig--all-centro { margin-left: auto; margin-right: auto; text-align: center; }
+.fig--all-destra { margin-left: auto; }
+
+/* immagine in cima alla home */
+.hero--h-bassa .hero-foto, .hero--h-bassa .hero-larga { max-height: 240px; }
+.hero--h-media .hero-foto, .hero--h-media .hero-larga { max-height: 380px; }
+.hero--h-alta .hero-foto, .hero--h-alta .hero-larga { max-height: 560px; }
+.hero--h-bassa .hero-sfondo { padding-block: clamp(1.5rem, 4vw, 2.5rem); }
+.hero--h-alta .hero-sfondo { padding-block: clamp(3rem, 9vw, 7rem); }
+.hero.all--centro .hero-sopra, .hero.all--centro .hero-testo { margin-left: auto; margin-right: auto; }
+
+@media (max-width: 760px) {
+  .blocco-con-foto.foto--piccola, .blocco-con-foto.foto--media, .blocco-con-foto.foto--grande {
+    grid-template-columns: 1fr;
+  }
+  .blocco-con-foto img { order: -1; }
+}

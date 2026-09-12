@@ -92,13 +92,23 @@ const COLORI_TESTO = {
   grigio: { nome: 'Grigio', css: '#7c6670' }
 };
 
+const POSIZIONI_FOTO = {
+  destra: 'A destra del testo',
+  sinistra: 'A sinistra del testo',
+  sopra: 'Sopra il testo',
+  sotto: 'Sotto il testo'
+};
+const DIMENSIONI_FOTO = { piccola: 'Piccola', media: 'Media', grande: 'Grande', piena: 'Tutta la larghezza' };
+const ALLINEAMENTI = { sinistra: 'A sinistra', centro: 'Centrato', destra: 'A destra' };
+const DIMENSIONI_TITOLO = { piccolo: 'Piccolo', normale: 'Normale', grande: 'Grande' };
+
 const TIPI_SEZIONE = {
-  testo: { nome: 'Testo', spiega: 'Un titolo e del testo, con immagine a fianco se vuoi.', campi: ['titolo', 'corpo', 'immagine', 'larghezza'] },
-  immagine: { nome: 'Immagine', spiega: 'Una foto larga, con didascalia facoltativa.', campi: ['immagine', 'titolo'] },
-  mansioni: { nome: 'Tessere dei servizi', spiega: 'I cinque riquadri: ripetizioni, compiti, babysitter, cucina, pulizia.', campi: ['titolo'] },
-  tutor: { nome: 'Schede delle tutor', spiega: 'Le prime sei ragazze approvate, con il link a tutte.', campi: ['titolo'] },
-  articoli: { nome: 'Ultimi articoli del blog', spiega: 'I tre articoli pubblicati più recenti.', campi: ['titolo'] },
-  cta: { nome: 'Invito con pulsante', spiega: 'Titolo, testo e un pulsante che porta dove vuoi.', campi: ['titolo', 'corpo', 'testo_bottone', 'link_bottone', 'larghezza'] }
+  testo: { nome: 'Testo', spiega: 'Un titolo e del testo, con immagine se vuoi.', campi: ['titolo', 'dimensione_titolo', 'corpo', 'allineamento', 'immagine', 'posizione', 'dimensione', 'larghezza'] },
+  immagine: { nome: 'Immagine', spiega: 'Una foto con didascalia facoltativa.', campi: ['immagine', 'dimensione', 'allineamento', 'titolo'] },
+  mansioni: { nome: 'Tessere dei servizi', spiega: 'I cinque riquadri: ripetizioni, compiti, babysitter, cucina, pulizia.', campi: ['titolo', 'dimensione_titolo', 'allineamento'] },
+  tutor: { nome: 'Schede delle tutor', spiega: 'Le prime sei ragazze approvate, con il link a tutte.', campi: ['titolo', 'dimensione_titolo', 'allineamento'] },
+  articoli: { nome: 'Ultimi articoli del blog', spiega: 'I tre articoli pubblicati più recenti.', campi: ['titolo', 'dimensione_titolo', 'allineamento'] },
+  cta: { nome: 'Invito con pulsante', spiega: 'Titolo, testo e un pulsante che porta dove vuoi.', campi: ['titolo', 'dimensione_titolo', 'corpo', 'allineamento', 'testo_bottone', 'link_bottone', 'larghezza'] }
 };
 
 const RAGGI = { morbido: '18px', tondo: '28px', netto: '3px' };
@@ -114,6 +124,8 @@ const CAMPI_ASPETTO = [
 
   { chiave: 'home_immagine', gruppo: 'Home', label: 'Immagine principale', tipo: 'immagine', def: '', aiuto: 'Si carica da Immagini. Lascia "Nessuna" per la home senza foto.' },
   { chiave: 'home_immagine_stile', gruppo: 'Home', label: 'Come si vede', tipo: 'scelta', opzioni: { accanto: 'Accanto al titolo', sotto: 'Larga sotto al titolo', sfondo: 'Come sfondo, col titolo sopra' }, def: 'accanto' },
+  { chiave: 'home_immagine_altezza', gruppo: 'Home', label: 'Grandezza dell\'immagine in cima', tipo: 'scelta', opzioni: { bassa: 'Bassa', media: 'Media', alta: 'Alta' }, def: 'media' },
+  { chiave: 'home_allineamento', gruppo: 'Home', label: 'Titolo in cima', tipo: 'scelta', opzioni: { sinistra: 'A sinistra', centro: 'Centrato' }, def: 'sinistra' },
   { chiave: 'home_titolo_articoli', gruppo: 'Home', label: 'Come chiamare il link al blog nei blocchi', tipo: 'testo', def: 'Leggi tutti gli articoli' },
 
   { chiave: 'font', gruppo: 'Caratteri', label: 'Coppia di caratteri', tipo: 'font', def: 'fraunces-karla' },
@@ -1050,7 +1062,16 @@ app.get(
     const { rows } = await pool.query('select * from sezioni where id = $1', [req.params.id]);
     if (!rows[0]) return res.status(404).render('errore', { titolo: 'Non trovato', messaggio: 'Questo blocco non esiste.' });
     const { rows: immagini } = await pool.query('select id, nome from immagini order by created_at desc');
-    res.render('admin-sezione', { titolo: 'Blocco della home', s: rows[0], immagini, TIPI_SEZIONE });
+    res.render('admin-sezione', {
+      titolo: 'Blocco della home',
+      s: rows[0],
+      immagini,
+      TIPI_SEZIONE,
+      POSIZIONI_FOTO,
+      DIMENSIONI_FOTO,
+      ALLINEAMENTI,
+      DIMENSIONI_TITOLO
+    });
   })
 );
 
@@ -1060,8 +1081,9 @@ app.post(
   wrap(async (req, res) => {
     await pool.query(
       `update sezioni set titolo=$1, corpo=$2, immagine_id=$3, testo_bottone=$4, link_bottone=$5,
-                          larghezza=$6, attiva=$7
-       where id=$8`,
+                          larghezza=$6, attiva=$7, posizione=$8, dimensione=$9,
+                          allineamento=$10, dimensione_titolo=$11
+       where id=$12`,
       [
         String(req.body.titolo || '').trim().slice(0, 160),
         String(req.body.corpo || '').slice(0, 4000),
@@ -1070,6 +1092,10 @@ app.post(
         String(req.body.link_bottone || '').trim().slice(0, 200),
         req.body.larghezza === 'meta' ? 'meta' : 'piena',
         req.body.attiva === 'si',
+        POSIZIONI_FOTO[req.body.posizione] ? req.body.posizione : 'destra',
+        DIMENSIONI_FOTO[req.body.dimensione] ? req.body.dimensione : 'media',
+        ALLINEAMENTI[req.body.allineamento] ? req.body.allineamento : 'sinistra',
+        DIMENSIONI_TITOLO[req.body.dimensione_titolo] ? req.body.dimensione_titolo : 'normale',
         req.params.id
       ]
     );

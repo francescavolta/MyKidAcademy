@@ -106,6 +106,10 @@ create table if not exists sezioni (
   ordine        integer not null default 0
 );
 create index if not exists sezioni_ordine on sezioni (ordine);
+alter table sezioni add column if not exists posizione text not null default 'destra';
+alter table sezioni add column if not exists dimensione text not null default 'media';
+alter table sezioni add column if not exists allineamento text not null default 'sinistra';
+alter table sezioni add column if not exists dimensione_titolo text not null default 'normale';
 
 create table if not exists richieste (
   id                serial primary key,

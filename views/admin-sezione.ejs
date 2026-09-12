@@ -40,6 +40,61 @@
     </div>
   <% } %>
 
+  <% if (campi.includes('posizione')) { %>
+    <div class="doppia">
+      <div>
+        <label for="posizione">Dove sta l'immagine</label>
+        <select id="posizione" name="posizione">
+          <% Object.keys(POSIZIONI_FOTO).forEach(function (k) { %>
+            <option value="<%= k %>" <%- s.posizione === k ? 'selected' : '' %>><%= POSIZIONI_FOTO[k] %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label for="dimensione">Quanto grande</label>
+        <select id="dimensione" name="dimensione">
+          <% Object.keys(DIMENSIONI_FOTO).forEach(function (k) { %>
+            <option value="<%= k %>" <%- s.dimensione === k ? 'selected' : '' %>><%= DIMENSIONI_FOTO[k] %></option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
+  <% } else if (campi.includes('dimensione')) { %>
+    <div>
+      <label for="dimensione">Quanto grande</label>
+      <select id="dimensione" name="dimensione">
+        <% Object.keys(DIMENSIONI_FOTO).forEach(function (k) { %>
+          <option value="<%= k %>" <%- s.dimensione === k ? 'selected' : '' %>><%= DIMENSIONI_FOTO[k] %></option>
+        <% }) %>
+      </select>
+    </div>
+  <% } %>
+
+  <% if (campi.includes('allineamento') || campi.includes('dimensione_titolo')) { %>
+    <div class="doppia">
+      <% if (campi.includes('allineamento')) { %>
+        <div>
+          <label for="allineamento"><%= s.tipo === 'immagine' ? 'Dove sta nella pagina' : 'Allineamento del testo' %></label>
+          <select id="allineamento" name="allineamento">
+            <% Object.keys(ALLINEAMENTI).forEach(function (k) { %>
+              <option value="<%= k %>" <%- s.allineamento === k ? 'selected' : '' %>><%= ALLINEAMENTI[k] %></option>
+            <% }) %>
+          </select>
+        </div>
+      <% } %>
+      <% if (campi.includes('dimensione_titolo')) { %>
+        <div>
+          <label for="dimensione_titolo">Grandezza del titolo</label>
+          <select id="dimensione_titolo" name="dimensione_titolo">
+            <% Object.keys(DIMENSIONI_TITOLO).forEach(function (k) { %>
+              <option value="<%= k %>" <%- s.dimensione_titolo === k ? 'selected' : '' %>><%= DIMENSIONI_TITOLO[k] %></option>
+            <% }) %>
+          </select>
+        </div>
+      <% } %>
+    </div>
+  <% } %>
+
   <% if (campi.includes('testo_bottone')) { %>
     <div class="doppia">
       <div>

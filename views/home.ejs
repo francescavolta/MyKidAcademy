@@ -2,7 +2,7 @@
 
 <% var stile = cfg.home_immagine ? cfg.home_immagine_stile : 'niente'; %>
 
-<section class="hero hero--<%= stile %>">
+<section class="hero hero--<%= stile %> hero--h-<%= cfg.home_immagine_altezza %> all--<%= cfg.home_allineamento %>">
   <% if (stile === 'sfondo') { %>
     <div class="hero-sfondo" style="background-image:url('/immagini/<%= cfg.home_immagine %>')">
       <div class="hero-sopra">
