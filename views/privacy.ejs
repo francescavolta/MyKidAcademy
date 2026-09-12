@@ -1,0 +1,9 @@
+<%- include('partials/testa') %>
+
+<article class="testo-lungo" style="margin-top:2rem">
+  <h1>Privacy</h1>
+  <%- corpoHtml(cfg.privacy_testo) %>
+  <p class="data">Per qualsiasi richiesta sui tuoi dati scrivi a <a href="mailto:<%= cfg.email_contatto %>"><%= cfg.email_contatto %></a>.</p>
+</article>
+
+<%- include('partials/piede') %>

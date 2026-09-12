@@ -1,0 +1,5 @@
+<% if (t.immagine_id) { %>
+  <img class="faccia" src="/immagini/<%= t.immagine_id %>" alt="Foto di <%= t.nome %>" loading="lazy">
+<% } else { %>
+  <div class="monogramma" aria-hidden="true"><%= iniziali(t.nome) %></div>
+<% } %>

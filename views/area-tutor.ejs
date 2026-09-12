@@ -20,7 +20,24 @@
 
 <div class="due-colonne" style="margin-top:2rem">
   <div>
-    <h2>I miei dati</h2>
+    <h2>La mia foto</h2>
+    <div class="scheda-testa">
+      <%- include('partials/faccia', { t: t }) %>
+      <div>
+        <form method="post" action="/area/tutor/foto" enctype="multipart/form-data" class="modulo" style="gap:.5rem">
+          <input id="file" name="file" type="file" accept="image/jpeg,image/png,image/webp" required>
+          <div class="riga-azioni">
+            <button class="bottone piccolo" type="submit">Carica la foto</button>
+            <% if (t.immagine_id) { %>
+              <button class="bottone piccolo chiaro" type="submit" formaction="/area/tutor/foto/togli" formenctype="application/x-www-form-urlencoded" formnovalidate>Togli la foto</button>
+            <% } %>
+          </div>
+        </form>
+        <p class="data" style="margin:.5rem 0 0">Una foto del viso, luminosa. Senza foto compaiono le tue iniziali.</p>
+      </div>
+    </div>
+
+    <h2 style="margin-top:2rem">I miei dati</h2>
     <form class="modulo larga" method="post" action="/area/tutor/profilo">
       <%- include('partials/campi-tutor', { t: t }) %>
       <div><button class="bottone" type="submit">Salva le modifiche</button></div>

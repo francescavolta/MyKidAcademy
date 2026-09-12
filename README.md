@@ -89,6 +89,49 @@ Serve un PostgreSQL raggiungibile. Se usi quello di Render dall'esterno, prendi 
 | `views/admin-aspetto.ejs` | la pagina "Aspetto del sito" nel coordinamento |
 | `views/` | le pagine. `partials/campi-tutor.ejs` è il modulo condiviso tra candidatura, area tutor e scheda del coordinamento |
 
+## Email
+
+`mail.js` manda le email con [Resend](https://resend.com). Senza `RESEND_API_KEY` il sito funziona identico e scrive nei log quello che avrebbe mandato: niente si rompe, semplicemente nessuno viene avvisato.
+
+Cosa parte, e a chi:
+
+| Quando | A te | Al destinatario |
+|---|---|---|
+| Una ragazza si candida | avviso con il link alla candidatura | conferma di ricezione |
+| Approvi una tutor | — | "la tua pagina è online" |
+| Una famiglia manda una richiesta | avviso con tutti i dati, `reply_to` della mamma | conferma di ricezione |
+| Una famiglia lascia una referenza | avviso da approvare | — |
+| Una tutor chiede la password | — | link per reimpostarla |
+
+**Recupero password**: `/password` → email con un link valido due ore e usabile una volta (tabella `reimposta`). Vale solo per le tutor: la password del coordinamento viene riallineata a `ADMIN_PASSWORD` a ogni deploy, quindi va cambiata da lì. Gli account coordinamento creati dal pannello, invece, possono usarlo.
+
+**Configurare Resend**: account gratuito, verifica del dominio (se ne hai uno) e chiave API in `RESEND_API_KEY`. Per provare subito senza dominio si può mandare da `onboarding@resend.dev`, ma solo verso il proprio indirizzo.
+
+## Privacy, condivisione e antispam
+
+- Pagina `/privacy` con il testo modificabile in Aspetto → Privacy. È un punto di partenza da completare con i dati veri dell'attività, non un testo legale garantito.
+- Casella di consenso obbligatoria su tutti e tre i moduli pubblici (richiesta, referenza, candidatura), con link alla privacy. Senza spunta il modulo non passa.
+- Niente banner cookie: l'unico cookie è quello tecnico di sessione.
+- Antispam: campo trappola invisibile (`sito_web`) più scarto degli invii completati in meno di 3 secondi, in `robot()`.
+- Condivisione: tag Open Graph in `partials/testa.ejs`; descrizione e immagine si scelgono in Aspetto → Condivisione. Con `INDIRIZZO_SITO` impostato l'immagine viene linkata in assoluto, come WhatsApp pretende.
+- Pulsante WhatsApp sulla pagina di ogni tutor, con messaggio già scritto: compare solo se metti il numero in Aspetto → Testi.
+
+## Pagine, foto e accessibilità
+
+- **Pagine libere** (tabella `pagine`): crei "Chi siamo", "Domande frequenti" e quello che vuoi, con la stessa scrittura del blog; quelle pubblicate e con "nel menù" attivo compaiono da sole nella barra in alto.
+- **Foto delle tutor**: ognuna carica la sua dalla propria area (ridimensionata a 1800 px dal browser). Senza foto resta il monogramma con le iniziali. Compare nelle schede, nell'elenco e sul profilo.
+- **Filtro per giorno** in `/tutor`: mostra solo chi ha una fascia libera futura in quel giorno della settimana (`extract(isodow …)`).
+- **Descrizione delle immagini** (`alt`): campo al caricamento e modificabile dalla libreria.
+- **Avviso di contrasto** in Aspetto: calcola il rapporto WCAG sulle cinque combinazioni che contano e avvisa sotto 4.5.
+- **Calendario su telefono**: sotto i 620 px la griglia diventa una lista dei soli giorni con fasce.
+
+## Gestione
+
+- **Fascia scelta nella richiesta**: la famiglia può indicare quale fascia le va bene, e la richiesta la registra (`richieste.disponibilita_id`).
+- **Ore del mese**: nella scheda della tutor, il totale delle ore segnate come occupate nel mese visualizzato.
+- **Secondo account coordinamento**: dal fondo dell'area coordinamento, con email e password. Ha gli stessi poteri.
+- **Copia dei dati**: `/area/coordinamento/esporta.json` scarica tutto tranne i byte delle immagini. Non sostituisce i backup di Render, ma è una rete di sicurezza che controlli tu.
+
 ## Calendario e referenze
 
 **Calendario a griglia** — nell'area tutor e nella scheda del coordinamento, sopra l'agenda per giorno (che resta). Griglia del mese da lunedì a domenica, frecce per cambiare mese (`?mese=2026-10`), fasce verdi se libere e rosse se occupate, bordo sul giorno di oggi. La griglia la costruisce `costruisciMese()` in `server.js`, la disegna `views/partials/calendario.ejs` — si riusa passando `mese` e `base` (l'indirizzo su cui puntano le frecce).

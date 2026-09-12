@@ -6,11 +6,15 @@ const session = require('express-session');
 const PgStore = require('connect-pg-simple')(session);
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
+const crypto = require('crypto');
 const { pool, initDb } = require('./db');
+const { invia, avvisaAdmin } = require('./mail');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
+const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
+const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
 const MANSIONI = [
   { id: 'ripetizioni', label: 'Ripetizioni', desc: 'Lezioni su una materia, a casa o online.' },
@@ -131,6 +135,7 @@ const CAMPI_ASPETTO = [
   { chiave: 'titolo_home', gruppo: 'Home', label: 'Titolo grande in home', tipo: 'area', def: 'Una persona di fiducia\nper quello che serve a casa.', aiuto: 'Dove vai a capo tu, va a capo anche il sito.' },
   { chiave: 'sottotitolo_home', gruppo: 'Home', label: 'Frase sotto il titolo', tipo: 'area', def: 'Selezioniamo noi le ragazze che collaborano con noi, una per una. Tu scegli di cosa hai bisogno, guardi chi è libera e ci pensiamo noi a organizzare.' },
   { chiave: 'email_contatto', gruppo: 'Testi', label: 'Email di contatto', tipo: 'testo', def: 'ciao@esempio.it' },
+  { chiave: 'whatsapp', gruppo: 'Testi', label: 'Numero WhatsApp', tipo: 'testo', def: '', aiuto: 'Con prefisso e senza spazi, es. 393331234567. Lascia vuoto per non mostrare il pulsante.' },
   { chiave: 'testo_piede', gruppo: 'Testi', label: 'Riga in fondo alle pagine', tipo: 'testo', def: 'ripetizioni, aiuto compiti, babysitter e aiuto in casa.' },
 
   { chiave: 'home_immagine', gruppo: 'Home', label: 'Immagine principale', tipo: 'immagine', def: '', aiuto: 'Si carica da Immagini. Lascia "Nessuna" per la home senza foto.' },
@@ -154,6 +159,9 @@ const CAMPI_ASPETTO = [
   { chiave: 'raggio', gruppo: 'Forme', label: 'Angoli dei riquadri', tipo: 'scelta', opzioni: { morbido: 'Morbidi', tondo: 'Molto tondi', netto: 'Netti' }, def: 'morbido' },
   { chiave: 'ombre', gruppo: 'Forme', label: 'Ombre sotto i riquadri', tipo: 'scelta', opzioni: { si: 'Sì', no: 'No' }, def: 'si' },
 
+  { chiave: 'og_descrizione', gruppo: 'Condivisione', label: 'Descrizione quando condividi il link', tipo: 'area', def: 'Ripetizioni, aiuto compiti, babysitter e aiuto in casa. Persone selezionate una per una.', aiuto: 'È il testo che compare nel riquadro su WhatsApp e sui social.' },
+  { chiave: 'og_immagine', gruppo: 'Condivisione', label: 'Immagine di condivisione', tipo: 'immagine', def: '', aiuto: 'Meglio orizzontale. Se non la metti uso quella in cima alla home.' },
+  { chiave: 'privacy_testo', gruppo: 'Privacy', label: 'Testo della pagina privacy', tipo: 'area', def: 'Questa pagina spiega come trattiamo i dati che ci lasci sul sito.\n\n## Chi tratta i dati\nI dati sono trattati da MyKidAcademy. Per qualsiasi richiesta puoi scriverci all\'indirizzo che trovi in fondo al sito.\n\n## Quali dati raccogliamo\nQuando mandi una richiesta: nome, email, telefono e quello che scrivi nel messaggio. Quando lasci una referenza: la firma che scegli, il voto, il commento e l\'email se la indichi. Quando ti candidi per lavorare con noi: i dati della tua scheda.\n\n## Perché\nPer ricontattarti e organizzare il servizio che ci hai chiesto. Non li usiamo per altro e non li vendiamo a nessuno.\n\n## Per quanto tempo\nFinché servono a gestire il rapporto con te. Puoi chiederci di cancellarli quando vuoi.\n\n## I tuoi diritti\nPuoi chiederci di vedere, correggere o cancellare i tuoi dati, oppure di non usarli più: basta scriverci.\n\n## Cookie\nUsiamo solo un cookie tecnico che tiene aperto l\'accesso di chi entra nella propria area. Non facciamo profilazione e non usiamo cookie di terze parti.', aiuto: 'Compila con i tuoi dati veri: nome dell\'attività, P.IVA e indirizzo. Questo è un punto di partenza, non un testo legale garantito.' },
   { chiave: 'titolo_blog', gruppo: 'Blog', label: 'Titolo della pagina blog', tipo: 'testo', def: 'Blog' },
   { chiave: 'sottotitolo_blog', gruppo: 'Blog', label: 'Frase sotto il titolo', tipo: 'area', def: 'Consigli, avvisi e cose che vale la pena raccontare ai genitori.' },
   { chiave: 'blog_impaginazione', gruppo: 'Blog', label: 'Come si vede l\'elenco', tipo: 'scelta', opzioni: IMPAGINAZIONI_BLOG, def: 'elenco' },
@@ -162,7 +170,25 @@ const CAMPI_ASPETTO = [
   { chiave: 'colore_blog_sfondo', gruppo: 'Blog', label: 'Sfondo delle pagine del blog', tipo: 'colore', def: '#fff8fa' }
 ];
 
-const GRUPPI_ASPETTO = ['Testi', 'Home', 'Caratteri', 'Colori', 'Forme', 'Blog'];
+const GRUPPI_ASPETTO = ['Testi', 'Home', 'Caratteri', 'Colori', 'Forme', 'Blog', 'Condivisione', 'Privacy'];
+
+function luminanza(hex) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(hex || ''));
+  if (!m) return 1;
+  const n = parseInt(m[1], 16);
+  const canali = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * canali[0] + 0.7152 * canali[1] + 0.0722 * canali[2];
+}
+
+// Rapporto di contrasto WCAG: sotto 4.5 il testo piccolo diventa faticoso.
+function contrasto(a, b) {
+  const x = luminanza(a);
+  const y = luminanza(b);
+  return Math.round(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 10) / 10;
+}
 
 function scurisci(hex, quanto = 0.22) {
   const m = /^#([0-9a-f]{6})$/i.exec(String(hex || ''));
@@ -174,6 +200,22 @@ function scurisci(hex, quanto = 0.22) {
 
 let cacheCfg = null;
 let cacheCfgOra = 0;
+let cacheMenu = null;
+let cacheMenuOra = 0;
+
+async function menuPagine(forza = false) {
+  if (!forza && cacheMenu && Date.now() - cacheMenuOra < 60000) return cacheMenu;
+  try {
+    const { rows } = await pool.query(
+      'select slug, titolo from pagine where attiva = true and nel_menu = true order by ordine asc, id asc'
+    );
+    cacheMenu = rows;
+  } catch (e) {
+    cacheMenu = [];
+  }
+  cacheMenuOra = Date.now();
+  return cacheMenu;
+}
 
 async function impostazioni(forza = false) {
   if (!forza && cacheCfg && Date.now() - cacheCfgOra < 60000) return cacheCfg;
@@ -335,6 +377,14 @@ function riceviImmagine(req, res, next) {
   });
 }
 
+// Trappola per i robot: un campo che gli umani non vedono e non compilano.
+function robot(req) {
+  if (String(req.body.sito_web || '').trim() !== '') return true;
+  const aperto = parseInt(req.body.aperto_il, 10);
+  if (aperto && Date.now() - aperto < 3000) return true; // compilato in meno di 3 secondi
+  return false;
+}
+
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 function avvisa(req, testo, tipo = 'ok') {
@@ -345,9 +395,11 @@ app.use(
   wrap(async (req, res, next) => {
     const cfg = await impostazioni();
     res.locals.cfg = cfg;
+    res.locals.menuPagine = await menuPagine();
     res.locals.font = FONT[cfg.font];
     res.locals.FONT = FONT;
     res.locals.scurisci = scurisci;
+    res.locals.contrasto = contrasto;
     res.locals.RAGGI = RAGGI;
     res.locals.COLORI_TESTO = COLORI_TESTO;
     res.locals.stelline = (n) => '★'.repeat(Math.round(Number(n) || 0)) + '☆'.repeat(5 - Math.round(Number(n) || 0));
@@ -371,6 +423,7 @@ app.use(
     res.locals.dataIt = (d) =>
       new Date(d).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
     res.locals.ora = (t) => String(t).slice(0, 5);
+    res.locals.indirizzo = INDIRIZZO || `${req.protocol}://${req.get('host')}`;
     res.locals.percorso = req.path;
     res.locals.modifica = false;
     res.locals.avviso = req.session.avviso || null;
@@ -466,9 +519,17 @@ function raggruppaSezioni(sezioni) {
   }));
 }
 
-async function tutorPubblici({ mansione, zona } = {}) {
+async function tutorPubblici({ mansione, zona, giorno } = {}) {
   const cond = ["u.role = 'tutor'", "u.status = 'approvato'"];
   const vals = [];
+  if (giorno !== undefined && giorno !== '' && !Number.isNaN(Number(giorno))) {
+    vals.push(Number(giorno));
+    cond.push(`exists (
+      select 1 from disponibilita d
+      where d.user_id = u.id and d.stato = 'libero' and d.data >= current_date
+        and extract(isodow from d.data) = $${vals.length}
+    )`);
+  }
   if (mansione && ID_MANSIONI.includes(mansione)) {
     vals.push(mansione);
     cond.push(`exists (select 1 from mansioni x where x.user_id = u.id and x.mansione = $${vals.length})`);
@@ -642,8 +703,9 @@ app.get(
   wrap(async (req, res) => {
     const mansione = req.query.mansione || '';
     const zona = (req.query.zona || '').trim();
-    const tutor = await tutorPubblici({ mansione, zona });
-    res.render('elenco', { titolo: 'Le nostre tutor', tutor, mansione, zona });
+    const giorno = req.query.giorno || '';
+    const tutor = await tutorPubblici({ mansione, zona, giorno });
+    res.render('elenco', { titolo: 'Le nostre tutor', tutor, mansione, zona, giorno });
   })
 );
 
@@ -670,16 +732,51 @@ app.post(
   wrap(async (req, res) => {
     const t = await tutorSingolo(req.params.id);
     if (!t || t.status !== 'approvato') return res.redirect('/tutor');
+    if (robot(req)) return res.redirect(`/tutor/${t.id}`);
+
     const { genitore_nome, genitore_email, genitore_telefono, mansione, quando, messaggio } = req.body;
     if (!genitore_nome || !genitore_email || !ID_MANSIONI.includes(mansione)) {
       avvisa(req, 'Compila nome, email e tipo di aiuto per inviare la richiesta.', 'errore');
       return res.redirect(`/tutor/${t.id}`);
     }
-    await pool.query(
-      `insert into richieste (tutor_id, genitore_nome, genitore_email, genitore_telefono, mansione, quando, messaggio)
-       values ($1,$2,$3,$4,$5,$6,$7)`,
-      [t.id, genitore_nome.trim(), genitore_email.trim().toLowerCase(), (genitore_telefono || '').trim(), mansione, (quando || '').trim(), (messaggio || '').trim()]
+    if (req.body.consenso !== 'si') {
+      avvisa(req, 'Per mandare la richiesta serve il consenso al trattamento dei dati.', 'errore');
+      return res.redirect(`/tutor/${t.id}`);
+    }
+
+    const email = genitore_email.trim().toLowerCase();
+    const { rows } = await pool.query(
+      `insert into richieste (tutor_id, genitore_nome, genitore_email, genitore_telefono, mansione, quando, messaggio, disponibilita_id)
+       values ($1,$2,$3,$4,$5,$6,$7,$8) returning id`,
+      [
+        t.id,
+        genitore_nome.trim(),
+        email,
+        (genitore_telefono || '').trim(),
+        mansione,
+        (quando || '').trim(),
+        (messaggio || '').trim(),
+        /^\d+$/.test(String(req.body.disponibilita_id || '')) ? req.body.disponibilita_id : null
+      ]
     );
+
+    const cfg = await impostazioni();
+    await invia({
+      a: email,
+      oggetto: `Abbiamo ricevuto la tua richiesta — ${cfg.nome_sito}`,
+      titolo: 'Richiesta ricevuta',
+      testo: `Ciao ${genitore_nome.trim()},\n\nabbiamo ricevuto la tua richiesta per ${labelMansione(mansione)} con ${t.nome}. Ti ricontattiamo noi per confermare giorni e orari.\n\nSe nel frattempo vuoi aggiungere qualcosa, rispondi a questa email.`,
+      azione: { testo: `Vedi la pagina di ${t.nome}`, link: urlAssoluto(req, `/tutor/${t.id}`) },
+      rispondiA: cfg.email_contatto
+    });
+    await avvisaAdmin({
+      oggetto: `Nuova richiesta per ${t.nome}`,
+      titolo: 'Nuova richiesta dal sito',
+      testo: `${genitore_nome.trim()} (${email}${genitore_telefono ? ', ' + genitore_telefono.trim() : ''}) ha chiesto ${labelMansione(mansione)} con ${t.nome}.\n\nQuando: ${(quando || '—').trim()}\n\n${(messaggio || '').trim()}`,
+      azione: { testo: 'Apri il coordinamento', link: urlAssoluto(req, '/area/coordinamento') },
+      rispondiA: email
+    });
+
     avvisa(req, `Richiesta inviata. Ti ricontattiamo noi per confermare con ${t.nome}.`);
     res.redirect(`/tutor/${t.id}`);
   })
@@ -691,10 +788,16 @@ app.post(
     const t = await tutorSingolo(req.params.id);
     if (!t || t.status !== 'approvato') return res.redirect('/tutor');
 
+    if (robot(req)) return res.redirect(`/tutor/${t.id}`);
+
     const stelle = Math.min(5, Math.max(1, parseInt(req.body.stelle, 10) || 0));
     const commento = String(req.body.commento || '').trim().slice(0, 800);
     const autore = String(req.body.autore || '').trim().slice(0, 120);
 
+    if (req.body.consenso !== 'si') {
+      avvisa(req, 'Per lasciare una referenza serve il consenso al trattamento dei dati.', 'errore');
+      return res.redirect(`/tutor/${t.id}#referenze`);
+    }
     if (!autore || commento.length < 15) {
       avvisa(req, 'Serve il tuo nome e qualche parola in più nel commento.', 'errore');
       return res.redirect(`/tutor/${t.id}#referenze`);
@@ -713,6 +816,12 @@ app.post(
       [t.id, autore, String(req.body.email || '').trim().toLowerCase().slice(0, 160), stelle, commento]
     );
     req.session.referenzeLasciate.push(String(t.id));
+    await avvisaAdmin({
+      oggetto: `Nuova referenza per ${t.nome}`,
+      titolo: 'Referenza da approvare',
+      testo: `${autore} ha lasciato ${stelle} stelle a ${t.nome}:\n\n"${commento}"`,
+      azione: { testo: 'Approva o elimina', link: urlAssoluto(req, '/area/coordinamento') }
+    });
     avvisa(req, 'Grazie! La referenza viene letta dal coordinamento e poi pubblicata sulla pagina.');
     res.redirect(`/tutor/${t.id}`);
   })
@@ -727,10 +836,16 @@ app.get('/lavora-con-noi', (req, res) => {
 app.post(
   '/lavora-con-noi',
   wrap(async (req, res) => {
+    if (robot(req)) return res.redirect('/lavora-con-noi');
+
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
     const nome = String(req.body.nome || '').trim();
 
+    if (req.body.consenso !== 'si') {
+      avvisa(req, 'Per candidarti serve il consenso al trattamento dei dati.', 'errore');
+      return res.redirect('/lavora-con-noi');
+    }
     if (!nome || !email.includes('@') || password.length < 8) {
       avvisa(req, 'Serve nome, email valida e una password di almeno 8 caratteri.', 'errore');
       return res.redirect('/lavora-con-noi');
@@ -757,6 +872,21 @@ app.post(
     );
     await salvaMansioni(rows[0].id, req.body.mansioni);
     await salvaMaterie(rows[0].id, req.body.materie);
+
+    await avvisaAdmin({
+      oggetto: `Nuova candidatura: ${nome}`,
+      titolo: 'Nuova candidatura',
+      testo: `${nome} (${email}) si è candidata dal sito.`,
+      azione: { testo: 'Vedi la candidatura', link: urlAssoluto(req, `/area/coordinamento/tutor/${rows[0].id}`) },
+      rispondiA: email
+    });
+    await invia({
+      a: email,
+      oggetto: 'Candidatura ricevuta',
+      titolo: 'Grazie, ci siamo!',
+      testo: `Ciao ${nome},\n\nabbiamo ricevuto la tua candidatura. La leggiamo e ti facciamo sapere: quando ti approviamo, la tua pagina diventa visibile alle famiglie.\n\nNel frattempo puoi completarla con materie, tariffa e disponibilità.`,
+      azione: { testo: 'Entra nella tua pagina', link: urlAssoluto(req, '/accedi') }
+    });
 
     req.session.userId = rows[0].id;
     avvisa(req, 'Candidatura ricevuta. Puoi già completare la tua pagina: sarà visibile dopo l\'approvazione.');
@@ -794,6 +924,77 @@ app.post(
 app.post('/esci', (req, res) => {
   req.session.destroy(() => res.redirect('/'));
 });
+
+app.get('/password', (req, res) => {
+  res.render('password-chiedi', { titolo: 'Password dimenticata' });
+});
+
+app.post(
+  '/password',
+  wrap(async (req, res) => {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const { rows } = await pool.query("select * from users where email = $1 and role = 'tutor'", [email]);
+    // Rispondo sempre allo stesso modo: così non si scopre chi è registrata e chi no.
+    if (rows[0]) {
+      const token = crypto.randomBytes(32).toString('hex');
+      await pool.query(
+        "insert into reimposta (token, user_id, scadenza) values ($1, $2, now() + interval '2 hours')",
+        [token, rows[0].id]
+      );
+      await invia({
+        a: email,
+        oggetto: 'Reimposta la tua password',
+        titolo: 'Nuova password',
+        testo: `Ciao ${rows[0].nome},\n\nhai chiesto di reimpostare la password. Il link vale due ore e si può usare una volta sola.\n\nSe non sei stata tu, ignora questa email: non cambia niente.`,
+        azione: { testo: 'Scegli una nuova password', link: urlAssoluto(req, `/password/${token}`) }
+      });
+    }
+    avvisa(req, 'Se quell\'email è registrata, ti è arrivato un link per reimpostare la password. Controlla anche lo spam.');
+    res.redirect('/accedi');
+  })
+);
+
+app.get(
+  '/password/:token',
+  wrap(async (req, res) => {
+    const { rows } = await pool.query(
+      'select * from reimposta where token = $1 and usato = false and scadenza > now()',
+      [req.params.token]
+    );
+    if (!rows[0]) {
+      return res.status(410).render('errore', {
+        titolo: 'Link scaduto',
+        messaggio: 'Questo link non è più valido. Chiedine un altro dalla pagina di accesso.'
+      });
+    }
+    res.render('password-nuova', { titolo: 'Nuova password', token: req.params.token });
+  })
+);
+
+app.post(
+  '/password/:token',
+  wrap(async (req, res) => {
+    const password = String(req.body.password || '');
+    const { rows } = await pool.query(
+      'select * from reimposta where token = $1 and usato = false and scadenza > now()',
+      [req.params.token]
+    );
+    if (!rows[0]) {
+      avvisa(req, 'Link scaduto. Chiedine un altro.', 'errore');
+      return res.redirect('/password');
+    }
+    if (password.length < 8) {
+      avvisa(req, 'La password deve avere almeno 8 caratteri.', 'errore');
+      return res.redirect(`/password/${req.params.token}`);
+    }
+    const hash = await bcrypt.hash(password, 12);
+    await pool.query('update users set password_hash = $1 where id = $2', [hash, rows[0].user_id]);
+    await pool.query('update reimposta set usato = true where token = $1', [req.params.token]);
+    req.session.userId = rows[0].user_id;
+    avvisa(req, 'Password aggiornata.');
+    res.redirect('/area');
+  })
+);
 
 app.get('/area', (req, res) => {
   if (!req.utente) return res.redirect('/accedi');
@@ -842,6 +1043,39 @@ app.post(
     await salvaMansioni(req.utente.id, req.body.mansioni);
     await salvaMaterie(req.utente.id, req.body.materie);
     avvisa(req, 'Pagina aggiornata.');
+    res.redirect('/area/tutor');
+  })
+);
+
+app.post(
+  '/area/tutor/foto',
+  soloTutor,
+  riceviImmagine,
+  wrap(async (req, res) => {
+    if (req.erroreFile || !req.file) {
+      avvisa(req, req.erroreFile || 'Scegli una foto prima di caricare.', 'errore');
+      return res.redirect('/area/tutor');
+    }
+    if (!TIPI_IMMAGINE.includes(req.file.mimetype)) {
+      avvisa(req, 'Vanno bene solo JPG, PNG, WEBP e GIF.', 'errore');
+      return res.redirect('/area/tutor');
+    }
+    const { rows } = await pool.query(
+      'insert into immagini (nome, tipo, peso, dati, alt) values ($1,$2,$3,$4,$5) returning id',
+      [`foto di ${req.utente.nome}`, req.file.mimetype, req.file.size, req.file.buffer, `Foto di ${req.utente.nome}`]
+    );
+    await pool.query('update users set immagine_id = $1 where id = $2', [rows[0].id, req.utente.id]);
+    avvisa(req, 'Foto aggiornata.');
+    res.redirect('/area/tutor');
+  })
+);
+
+app.post(
+  '/area/tutor/foto/togli',
+  soloTutor,
+  wrap(async (req, res) => {
+    await pool.query('update users set immagine_id = null where id = $1', [req.utente.id]);
+    avvisa(req, 'Foto rimossa: torna il monogramma con le iniziali.');
     res.redirect('/area/tutor');
   })
 );
@@ -914,8 +1148,20 @@ app.post(
   wrap(async (req, res) => {
     const stato = req.body.stato;
     if (!STATI_UTENTE.includes(stato)) return res.redirect('/area/coordinamento');
-    await pool.query(`update users set status=$1 where id=$2 and role='tutor'`, [stato, req.params.id]);
-    avvisa(req, stato === 'approvato' ? 'Tutor approvata: ora è visibile ai genitori.' : `Stato aggiornato: ${stato.replace('_', ' ')}.`);
+    const { rows } = await pool.query(
+      `update users set status=$1 where id=$2 and role='tutor' returning email, nome, status`,
+      [stato, req.params.id]
+    );
+    if (rows[0] && stato === 'approvato') {
+      await invia({
+        a: rows[0].email,
+        oggetto: 'La tua pagina è online',
+        titolo: 'Sei stata approvata',
+        testo: `Ciao ${rows[0].nome},\n\nla tua pagina è stata approvata: da ora le famiglie possono vederti e chiederti lezioni.\n\nControlla che materie, tariffa e disponibilità siano aggiornate, così ricevi richieste giuste.`,
+        azione: { testo: 'Apri la tua pagina', link: urlAssoluto(req, '/area/tutor') }
+      });
+    }
+    avvisa(req, stato === 'approvato' ? 'Tutor approvata: ora è visibile ai genitori (le è arrivata l\'email).' : `Stato aggiornato: ${stato.replace('_', ' ')}.`);
     res.redirect(req.body.ritorno || '/area/coordinamento');
   })
 );
@@ -934,7 +1180,15 @@ app.get(
       [t.id]
     );
     const chiave = MESE_OK.test(req.query.mese || '') ? req.query.mese : meseCorrente();
+    const { rows: ore } = await pool.query(
+      `select coalesce(sum(extract(epoch from (ora_fine - ora_inizio)) / 3600), 0) as ore
+       from disponibilita
+       where user_id = $1 and stato = 'occupato'
+         and data >= $2::date and data < ($2::date + interval '1 month')`,
+      [t.id, chiave + '-01']
+    );
     res.render('admin-tutor', {
+      oreMese: Math.round(Number(ore[0].ore) * 10) / 10,
       titolo: `Scheda di ${t.nome}`,
       t,
       giorni: raggruppaPerData(slots),
@@ -1021,6 +1275,52 @@ app.post(
     if (!STATI_RICHIESTA.includes(req.body.stato)) return res.redirect('/area/coordinamento');
     await pool.query('update richieste set stato=$1 where id=$2', [req.body.stato, req.params.id]);
     res.redirect(req.body.ritorno || '/area/coordinamento');
+  })
+);
+
+app.post(
+  '/area/coordinamento/coordinatori',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '');
+    if (!email.includes('@') || password.length < 8) {
+      avvisa(req, 'Serve un\'email valida e una password di almeno 8 caratteri.', 'errore');
+      return res.redirect('/area/coordinamento');
+    }
+    const hash = await bcrypt.hash(password, 12);
+    await pool.query(
+      `insert into users (email, password_hash, role, status, nome)
+       values ($1,$2,'admin','approvato',$3)
+       on conflict (email) do update set password_hash = excluded.password_hash, role = 'admin', status = 'approvato'`,
+      [email, hash, String(req.body.nome || '').trim() || 'Coordinamento']
+    );
+    avvisa(req, `${email} ora entra nel coordinamento con questa password.`);
+    res.redirect('/area/coordinamento');
+  })
+);
+
+app.get(
+  '/area/coordinamento/esporta.json',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const q = async (sql) => (await pool.query(sql)).rows;
+    const dati = {
+      esportato: new Date().toISOString(),
+      persone: await q("select id, email, role, status, nome, telefono, zona, bio, tariffa, nota_interna, created_at from users"),
+      mansioni: await q('select * from mansioni'),
+      materie: await q('select * from materie'),
+      disponibilita: await q('select * from disponibilita'),
+      richieste: await q('select * from richieste'),
+      referenze: await q('select * from referenze'),
+      articoli: await q('select * from articoli'),
+      pagine: await q('select * from pagine'),
+      sezioni: await q('select * from sezioni'),
+      impostazioni: await q('select * from impostazioni'),
+      immagini: await q('select id, nome, tipo, peso, alt, created_at from immagini')
+    };
+    res.setHeader('Content-Disposition', `attachment; filename="mykidacademy-${new Date().toISOString().slice(0, 10)}.json"`);
+    res.json(dati);
   })
 );
 
@@ -1268,7 +1568,7 @@ app.get(
   '/area/coordinamento/immagini',
   soloAdmin,
   wrap(async (req, res) => {
-    const { rows } = await pool.query('select id, nome, tipo, peso, created_at from immagini order by created_at desc');
+    const { rows } = await pool.query('select id, nome, tipo, peso, alt, created_at from immagini order by created_at desc');
     const { rows: spazio } = await pool.query('select coalesce(sum(peso), 0) as totale from immagini');
     res.render('admin-immagini', { titolo: 'Immagini', immagini: rows, totale: Number(spazio[0].totale) });
   })
@@ -1291,13 +1591,27 @@ app.post(
       avvisa(req, 'Vanno bene solo JPG, PNG, WEBP e GIF.', 'errore');
       return res.redirect('/area/coordinamento/immagini');
     }
-    await pool.query('insert into immagini (nome, tipo, peso, dati) values ($1,$2,$3,$4)', [
+    await pool.query('insert into immagini (nome, tipo, peso, dati, alt) values ($1,$2,$3,$4,$5)', [
       String(req.body.nome || req.file.originalname || 'immagine').trim().slice(0, 120),
       req.file.mimetype,
       req.file.size,
-      req.file.buffer
+      req.file.buffer,
+      String(req.body.alt || '').trim().slice(0, 300)
     ]);
     avvisa(req, 'Immagine caricata.');
+    res.redirect('/area/coordinamento/immagini');
+  })
+);
+
+app.post(
+  '/area/coordinamento/immagini/:id/alt',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('update immagini set alt = $1 where id = $2', [
+      String(req.body.alt || '').trim().slice(0, 300),
+      req.params.id
+    ]);
+    avvisa(req, 'Descrizione salvata.');
     res.redirect('/area/coordinamento/immagini');
   })
 );
@@ -1309,6 +1623,100 @@ app.post(
     await pool.query('delete from immagini where id = $1', [req.params.id]);
     avvisa(req, 'Immagine eliminata. Dove era inserita, ora non compare più.');
     res.redirect('/area/coordinamento/immagini');
+  })
+);
+
+app.get('/privacy', (req, res) => {
+  res.render('privacy', { titolo: 'Privacy' });
+});
+
+/* ---------- pagine libere ---------- */
+
+app.get(
+  '/pagina/:slug',
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from pagine where slug = $1', [req.params.slug]);
+    const p = rows[0];
+    const suo = req.utente && req.utente.role === 'admin';
+    if (!p || (!p.attiva && !suo)) {
+      return res.status(404).render('errore', { titolo: 'Pagina non trovata', messaggio: 'Questa pagina non esiste o non è ancora pubblicata.' });
+    }
+    res.render('pagina', { titolo: p.titolo, p });
+  })
+);
+
+app.get(
+  '/area/coordinamento/pagine',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from pagine order by ordine asc, id asc');
+    res.render('admin-pagine', { titolo: 'Pagine', pagine: rows });
+  })
+);
+
+app.post(
+  '/area/coordinamento/pagine',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const titolo = String(req.body.titolo || '').trim();
+    if (!titolo) {
+      avvisa(req, 'Serve il titolo della pagina.', 'errore');
+      return res.redirect('/area/coordinamento/pagine');
+    }
+    const base = slugify(titolo);
+    let slug = base;
+    for (let i = 2; i < 40; i++) {
+      const c = await pool.query('select 1 from pagine where slug = $1', [slug]);
+      if (!c.rowCount) break;
+      slug = `${base}-${i}`;
+    }
+    const { rows: max } = await pool.query('select coalesce(max(ordine), 0) as m from pagine');
+    const { rows } = await pool.query(
+      'insert into pagine (slug, titolo, ordine) values ($1,$2,$3) returning id',
+      [slug, titolo, Number(max[0].m) + 1]
+    );
+    res.redirect(`/area/coordinamento/pagine/${rows[0].id}`);
+  })
+);
+
+app.get(
+  '/area/coordinamento/pagine/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from pagine where id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).render('errore', { titolo: 'Non trovata', messaggio: 'Questa pagina non esiste.' });
+    res.render('admin-pagina', { titolo: rows[0].titolo, p: rows[0] });
+  })
+);
+
+app.post(
+  '/area/coordinamento/pagine/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query(
+      `update pagine set titolo=$1, corpo=$2, attiva=$3, nel_menu=$4, updated_at=now() where id=$5`,
+      [
+        String(req.body.titolo || '').trim().slice(0, 120),
+        String(req.body.corpo || '').slice(0, 20000),
+        req.body.attiva === 'si',
+        req.body.nel_menu === 'si',
+        req.params.id
+      ]
+    );
+    await menuPagine(true);
+    avvisa(req, req.body.attiva === 'si' ? 'Pagina salvata e online.' : 'Pagina salvata come bozza.');
+    res.redirect('/area/coordinamento/pagine');
+  })
+);
+
+app.post(
+  '/area/coordinamento/pagine/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('delete from pagine where id = $1', [req.params.id]);
+    await menuPagine(true);
+    avvisa(req, 'Pagina eliminata.');
+    res.redirect('/area/coordinamento/pagine');
   })
 );
 

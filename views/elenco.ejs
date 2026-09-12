@@ -18,6 +18,15 @@
       <label for="zona">Zona</label>
       <input id="zona" name="zona" type="text" value="<%= zona %>" placeholder="Bologna">
     </div>
+    <div>
+      <label for="giorno">Libera di</label>
+      <select id="giorno" name="giorno">
+        <option value="">Qualsiasi giorno</option>
+        <% [['1','lunedì'],['2','martedì'],['3','mercoledì'],['4','giovedì'],['5','venerdì'],['6','sabato'],['7','domenica']].forEach(function (g) { %>
+          <option value="<%= g[0] %>" <%- String(giorno) === g[0] ? 'selected' : '' %>><%= g[1] %></option>
+        <% }) %>
+      </select>
+    </div>
     <div style="align-self:end">
       <button class="bottone" type="submit">Filtra</button>
     </div>
@@ -33,7 +42,7 @@
     <% tutor.forEach(function (t) { %>
       <li class="scheda">
         <div class="scheda-testa">
-          <div class="monogramma" aria-hidden="true"><%= iniziali(t.nome) %></div>
+          <%- include('partials/faccia', { t: t }) %>
           <div>
             <h3><a href="/tutor/<%= t.id %><%= mansione ? '?mansione=' + mansione : '' %>"><%= t.nome %></a></h3>
             <% if (t.zona) { %><div class="zona"><%= t.zona %></div><% } %>

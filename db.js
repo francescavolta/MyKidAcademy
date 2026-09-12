@@ -28,6 +28,27 @@ create table if not exists users (
   created_at    timestamptz not null default now()
 );
 
+alter table users add column if not exists immagine_id integer;
+
+create table if not exists reimposta (
+  token      text primary key,
+  user_id    integer not null references users(id) on delete cascade,
+  scadenza   timestamptz not null,
+  usato      boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists pagine (
+  id         serial primary key,
+  slug       text unique not null,
+  titolo     text not null,
+  corpo      text not null default '',
+  nel_menu   boolean not null default true,
+  attiva     boolean not null default false,
+  ordine     integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists mansioni (
   user_id  integer not null references users(id) on delete cascade,
   mansione text not null,
@@ -79,6 +100,7 @@ create table if not exists articoli (
 );
 create index if not exists articoli_pubblicati on articoli (pubblicato, created_at desc);
 alter table articoli add column if not exists immagine_id integer references immagini(id) on delete set null;
+alter table immagini add column if not exists alt text not null default '';
 
 create table if not exists referenze (
   id         serial primary key,
@@ -115,6 +137,7 @@ alter table sezioni add column if not exists vert text not null default 'alto';
 create table if not exists richieste (
   id                serial primary key,
   tutor_id          integer references users(id) on delete set null,
+  disponibilita_id  integer,
   genitore_nome     text not null,
   genitore_email    text not null,
   genitore_telefono text not null default '',
@@ -126,8 +149,15 @@ create table if not exists richieste (
 );
 `;
 
+// Aggiunte dopo la prima versione: le metto qui perché dipendono da tabelle create sopra.
+const AGGIUNTE = `
+alter table users add column if not exists immagine_id integer references immagini(id) on delete set null;
+alter table richieste add column if not exists disponibilita_id integer references disponibilita(id) on delete set null;
+`;
+
 async function initDb() {
   await pool.query(SCHEMA);
+  await pool.query(AGGIUNTE);
 }
 
 module.exports = { pool, initDb };

@@ -28,6 +28,19 @@
     <% }) %>
   </div>
 
+  <ul class="cal-lista">
+    <% var qualcosa = false; %>
+    <% mese.settimane.forEach(function (sett) { sett.forEach(function (c) { if (c && c.slots.length) { qualcosa = true; %>
+      <li>
+        <strong><%= dataIt(c.chiave) %></strong>
+        <% c.slots.forEach(function (s) { %>
+          <span class="cal-fascia cal-fascia--<%= s.stato %>"><%= ora(s.ora_inizio) %>–<%= ora(s.ora_fine) %><%= s.nota ? ' · ' + s.nota : '' %></span>
+        <% }) %>
+      </li>
+    <% } }) }) %>
+    <% if (!qualcosa) { %><li class="data">Nessuna fascia in questo mese.</li><% } %>
+  </ul>
+
   <p class="cal-legenda">
     <span class="cal-fascia cal-fascia--libero">libero</span>
     <span class="cal-fascia cal-fascia--occupato">occupato</span>

@@ -21,7 +21,7 @@
       <% tutor.forEach(function (t) { %>
         <li class="scheda">
           <div class="scheda-testa">
-            <div class="monogramma" aria-hidden="true"><%= iniziali(t.nome) %></div>
+            <%- include('faccia', { t: t }) %>
             <div>
               <h3><a href="/tutor/<%= t.id %>"><%= t.nome %></a></h3>
               <% if (t.zona) { %><div class="zona"><%= t.zona %></div><% } %>

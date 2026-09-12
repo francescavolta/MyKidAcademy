@@ -3,7 +3,7 @@
 <div class="due-colonne" style="margin-top:2rem">
   <div>
     <div class="scheda-testa">
-      <div class="monogramma" aria-hidden="true"><%= iniziali(t.nome) %></div>
+      <%- include('partials/faccia', { t: t }) %>
       <div>
         <h1 style="font-size:2.1rem;margin:0"><%= t.nome %></h1>
         <% if (t.zona) { %><div class="zona"><%= t.zona %></div><% } %>
@@ -60,6 +60,7 @@
           <label for="commento">Com'è andata</label>
           <textarea id="commento" name="commento" minlength="15" maxlength="800" required></textarea>
         </div>
+        <%- include('partials/consenso') %>
         <div><button class="bottone" type="submit">Invia la referenza</button></div>
       </form>
     </details>
@@ -89,6 +90,21 @@
       <h2 style="font-size:1.4rem">Richiedi <%= t.nome.split(' ')[0] %></h2>
       <p class="testo">Lascia i tuoi dati: ti richiamiamo noi per confermare giorni e orari.</p>
       <form class="modulo" method="post" action="/tutor/<%= t.id %>/richiesta">
+        <% if (giorni.length) { %>
+          <div>
+            <label for="disponibilita_id">Una fascia che ti va bene
+              <span class="aiuto">Facoltativo, ma ci fa risparmiare due telefonate.</span>
+            </label>
+            <select id="disponibilita_id" name="disponibilita_id">
+              <option value="">Nessuna in particolare</option>
+              <% giorni.forEach(function (g) { %>
+                <% g.slots.forEach(function (sl) { %>
+                  <option value="<%= sl.id %>"><%= dataIt(g.data) %> · <%= ora(sl.ora_inizio) %>–<%= ora(sl.ora_fine) %></option>
+                <% }) %>
+              <% }) %>
+            </select>
+          </div>
+        <% } %>
         <div>
           <label for="mansione">Di cosa hai bisogno</label>
           <select id="mansione" name="mansione" required>
@@ -119,8 +135,16 @@
           </label>
           <textarea id="messaggio" name="messaggio"></textarea>
         </div>
+        <%- include('partials/consenso') %>
         <div><button class="bottone" type="submit">Invia la richiesta</button></div>
       </form>
+
+      <% if (cfg.whatsapp) { %>
+        <p style="margin:1rem 0 0">
+          <a class="bottone chiaro" href="https://wa.me/<%= cfg.whatsapp %>?text=<%= encodeURIComponent('Ciao! Ho visto ' + t.nome + ' sul sito e vorrei informazioni.') %>"
+             target="_blank" rel="noopener">Scrivici su WhatsApp</a>
+        </p>
+      <% } %>
     </div>
   </div>
 </div>

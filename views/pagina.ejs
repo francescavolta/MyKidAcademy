@@ -1,0 +1,9 @@
+<%- include('partials/testa') %>
+
+<article class="testo-lungo" style="margin-top:2rem">
+  <h1><%= p.titolo %></h1>
+  <% if (!p.attiva) { %><p class="avviso avviso--errore">Questa pagina è una bozza: la vedi solo tu.</p><% } %>
+  <%- corpoHtml(p.corpo) %>
+</article>
+
+<%- include('partials/piede') %>

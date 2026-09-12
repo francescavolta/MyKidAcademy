@@ -1,0 +1,39 @@
+<%- include('partials/testa') %>
+
+<p style="margin-top:1.5rem"><a href="/area/coordinamento/pagine">← Pagine</a></p>
+<h1><%= p.titolo %></h1>
+<p class="guida">Indirizzo pubblico: <code>/pagina/<%= p.slug %></code></p>
+
+<form class="modulo larga" method="post" action="/area/coordinamento/pagine/<%= p.id %>" style="max-width:44rem">
+  <div>
+    <label for="titolo">Titolo</label>
+    <input id="titolo" name="titolo" type="text" maxlength="120" required value="<%= p.titolo %>">
+  </div>
+  <div>
+    <label for="corpo">Contenuto
+      <span class="aiuto">Riga vuota fra i paragrafi. <code>## </code> sottotitolo, <code>- </code> elenco, <code>**grassetto**</code>, <code>{verde:colorato}</code>, <code>[img:3]</code>. Per le domande frequenti: una domanda con <code>## </code> e sotto la risposta.</span>
+    </label>
+    <textarea id="corpo" name="corpo" style="min-height:22rem"><%= p.corpo %></textarea>
+  </div>
+  <fieldset>
+    <legend>Visibilità</legend>
+    <div class="caselle">
+      <label><input type="radio" name="attiva" value="no" <%- p.attiva ? '' : 'checked' %>> Bozza</label>
+      <label><input type="radio" name="attiva" value="si" <%- p.attiva ? 'checked' : '' %>> Online</label>
+    </div>
+    <div class="caselle" style="margin-top:.6rem">
+      <label><input type="checkbox" name="nel_menu" value="si" <%- p.nel_menu ? 'checked' : '' %>> Mostrala nel menù in alto</label>
+    </div>
+  </fieldset>
+  <div class="riga-azioni">
+    <button class="bottone" type="submit">Salva</button>
+    <a class="bottone chiaro" href="/pagina/<%= p.slug %>">Guarda la pagina</a>
+  </div>
+</form>
+
+<form method="post" action="/area/coordinamento/pagine/<%= p.id %>/elimina" style="margin-top:2.5rem"
+      onsubmit="return confirm('Eliminare questa pagina?')">
+  <button class="link-testo" type="submit">Elimina questa pagina</button>
+</form>
+
+<%- include('partials/piede') %>

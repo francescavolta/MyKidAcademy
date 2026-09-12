@@ -6,6 +6,7 @@
 <ul class="scorciatoie">
   <li><a class="bottone chiaro" href="/area/coordinamento/home">Home</a></li>
   <li><a class="bottone chiaro" href="/area/coordinamento/blog">Blog</a></li>
+  <li><a class="bottone chiaro" href="/area/coordinamento/pagine">Pagine</a></li>
   <li><a class="bottone chiaro" href="/area/coordinamento/immagini">Immagini</a></li>
   <li><a class="bottone chiaro" href="/area/coordinamento/aspetto">Aspetto del sito</a></li>
 </ul>
@@ -178,5 +179,38 @@
   </div>
 </section>
 <% } %>
+
+<section>
+  <h2>Impostazioni dell'account</h2>
+  <div class="due-colonne">
+    <div>
+      <h3>Un secondo accesso al coordinamento</h3>
+      <p class="testo">Se qualcuno ti aiuta a gestire l'agenzia, dagli un accesso suo invece di condividere il tuo. Vede e può fare tutto quello che fai tu.</p>
+      <form class="modulo" method="post" action="/area/coordinamento/coordinatori">
+        <div class="doppia">
+          <div>
+            <label for="co_nome">Nome</label>
+            <input id="co_nome" name="nome" type="text">
+          </div>
+          <div>
+            <label for="co_email">Email</label>
+            <input id="co_email" name="email" type="email" required>
+          </div>
+        </div>
+        <div>
+          <label for="co_password">Password da darle <span class="aiuto">Almeno 8 caratteri. Potrà cambiarla dal link "password dimenticata".</span></label>
+          <input id="co_password" name="password" type="password" minlength="8" required>
+        </div>
+        <div><button class="bottone" type="submit">Crea l'accesso</button></div>
+      </form>
+    </div>
+    <div>
+      <h3>Copia dei dati</h3>
+      <p class="testo">Scarica tutto quello che c'è nel sito in un unico file: candidature, richieste, referenze, articoli, pagine e impostazioni. Le foto no, quelle sono nel database e pesano troppo per questo file.</p>
+      <p class="testo">Fallo ogni tanto e tienilo da parte: è la tua rete di sicurezza se il database viene cancellato.</p>
+      <p><a class="bottone chiaro" href="/area/coordinamento/esporta.json">Scarica la copia</a></p>
+    </div>
+  </div>
+</section>
 
 <%- include('partials/piede') %>

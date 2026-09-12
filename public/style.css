@@ -738,3 +738,41 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
   .modifica-barra { position: static; }
   .ms-tipo { display: none; }
 }
+
+/* ---------- foto delle tutor ---------- */
+
+.faccia {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border-radius: var(--raggio-piccolo);
+  object-fit: cover;
+  display: block;
+}
+.due-colonne .faccia, .scheda-testa .faccia { width: 72px; height: 72px; }
+
+/* trappola antispam: invisibile ma non "display:none", così i robot la trovano */
+.trappola { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* calendario: su telefono la griglia diventa una lista */
+.cal-lista { display: none; }
+@media (max-width: 620px) {
+  .cal-griglia { display: none; }
+  .cal-lista {
+    display: grid;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+  }
+  .cal-lista li {
+    border: 1px solid var(--velo);
+    border-radius: var(--raggio-piccolo);
+    padding: 0.5rem 0.7rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.6rem;
+    align-items: center;
+  }
+  .cal-lista strong { text-transform: capitalize; font-size: 0.9rem; width: 100%; }
+}

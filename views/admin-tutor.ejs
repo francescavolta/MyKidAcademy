@@ -35,6 +35,7 @@
 
   <div>
     <h2>Calendario</h2>
+    <p class="data">Ore segnate come occupate in <%= mese.nome %>: <strong><%= oreMese %></strong></p>
     <%- include('partials/calendario', { mese: mese, base: '/area/coordinamento/tutor/' + t.id }) %>
 
     <form class="modulo" method="post" action="/area/coordinamento/tutor/<%= t.id %>/disponibilita" style="margin-top:1.5rem">

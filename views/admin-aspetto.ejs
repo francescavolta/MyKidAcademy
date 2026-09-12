@@ -52,6 +52,27 @@
     </fieldset>
   <% }) %>
 
+  <% var coppie = [
+       ['Testo sullo sfondo', cfg.colore_inchiostro, cfg.colore_carta],
+       ['Testo secondario sullo sfondo', cfg.colore_grigio, cfg.colore_carta],
+       ['Titoli sullo sfondo', cfg.colore_titolo, cfg.colore_carta],
+       ['Testo sui riquadri', cfg.colore_inchiostro, cfg.colore_velo],
+       ['Bianco sui pulsanti', '#ffffff', cfg.colore_prugna]
+     ]; %>
+  <% var deboli = coppie.filter(function (c) { return contrasto(c[1], c[2]) < 4.5; }); %>
+  <% if (deboli.length) { %>
+    <div class="avviso avviso--errore">
+      <strong>Attenzione al contrasto.</strong> Queste combinazioni sono troppo poco contrastate e diventano faticose da leggere, soprattutto su un telefono al sole:
+      <ul style="margin:.5rem 0 0">
+        <% deboli.forEach(function (c) { %>
+          <li><%= c[0] %>: <%= contrasto(c[1], c[2]) %> a 1 (serve almeno 4.5)</li>
+        <% }) %>
+      </ul>
+    </div>
+  <% } else { %>
+    <p class="data">Contrasto dei colori: tutte le combinazioni sono leggibili.</p>
+  <% } %>
+
   <div class="riga-azioni">
     <button class="bottone" type="submit">Salva l'aspetto</button>
     <a class="bottone chiaro" href="/" target="_blank" rel="noopener">Apri la home</a>

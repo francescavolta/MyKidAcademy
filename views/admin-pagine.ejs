@@ -1,0 +1,36 @@
+<%- include('partials/testa') %>
+
+<p style="margin-top:1.5rem"><a href="/area/coordinamento">← Coordinamento</a></p>
+<h1>Pagine</h1>
+<p class="guida">Le pagine fisse del sito: "Chi siamo", le domande frequenti, quello che ti serve. Quelle pubblicate compaiono nel menù in alto.</p>
+
+<form class="modulo" method="post" action="/area/coordinamento/pagine">
+  <div>
+    <label for="titolo">Titolo della nuova pagina</label>
+    <input id="titolo" name="titolo" type="text" required placeholder="Chi siamo">
+  </div>
+  <div><button class="bottone" type="submit">Crea</button></div>
+</form>
+
+<% if (pagine.length === 0) { %>
+  <div class="vuoto" style="margin-top:1.5rem"><p>Nessuna pagina. Le due che servono di più: "Chi siamo" e "Domande frequenti".</p></div>
+<% } else { %>
+  <div class="tabella-avvolgi">
+    <table>
+      <thead><tr><th>Titolo</th><th>Indirizzo</th><th>Stato</th><th>Nel menù</th><th></th></tr></thead>
+      <tbody>
+        <% pagine.forEach(function (p) { %>
+          <tr>
+            <td><a href="/area/coordinamento/pagine/<%= p.id %>"><%= p.titolo %></a></td>
+            <td class="data">/pagina/<%= p.slug %></td>
+            <td><span class="stato <%= p.attiva ? 'stato--approvato' : 'stato--in_attesa' %>"><%= p.attiva ? 'online' : 'bozza' %></span></td>
+            <td class="data"><%= p.nel_menu ? 'sì' : 'no' %></td>
+            <td><a class="bottone piccolo chiaro" href="/area/coordinamento/pagine/<%= p.id %>">Modifica</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('partials/piede') %>

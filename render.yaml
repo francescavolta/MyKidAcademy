@@ -24,6 +24,12 @@ services:
         sync: false
       - key: ADMIN_NOME
         sync: false
+      - key: INDIRIZZO_SITO
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MITTENTE
+        sync: false
 
 databases:
   - name: mykidacademy-db

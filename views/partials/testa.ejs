@@ -4,7 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><%= titolo %> · <%= cfg.nome_sito %></title>
-<meta name="description" content="Agenzia di ripetizioni, aiuto compiti, babysitter e aiuto in casa. Scegli la persona giusta e ti richiamiamo noi.">
+<meta name="description" content="<%= cfg.og_descrizione %>">
+<meta property="og:site_name" content="<%= cfg.nome_sito %>">
+<meta property="og:title" content="<%= titolo %>">
+<meta property="og:description" content="<%= cfg.og_descrizione %>">
+<meta property="og:type" content="website">
+<% var ogImg = cfg.og_immagine || cfg.home_immagine; %>
+<% if (ogImg) { %>
+  <meta property="og:image" content="<%= (typeof indirizzo !== 'undefined' ? indirizzo : '') %>/immagini/<%= ogImg %>">
+  <meta name="twitter:card" content="summary_large_image">
+<% } else { %>
+  <meta name="twitter:card" content="summary">
+<% } %>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?<%= font.query %>&display=swap" rel="stylesheet">
@@ -36,6 +47,9 @@
     <nav>
       <a href="/tutor" <%- percorso.startsWith('/tutor') ? 'aria-current="page"' : '' %>>Le nostre tutor</a>
       <a href="/blog" <%- percorso.startsWith('/blog') ? 'aria-current="page"' : '' %>>Blog</a>
+      <% menuPagine.forEach(function (pg) { %>
+        <a href="/pagina/<%= pg.slug %>" <%- percorso === '/pagina/' + pg.slug ? 'aria-current="page"' : '' %>><%= pg.titolo %></a>
+      <% }) %>
       <% if (!utente) { %>
         <a href="/lavora-con-noi">Lavora con noi</a>
         <a href="/accedi">Accedi</a>
