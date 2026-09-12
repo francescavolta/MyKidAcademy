@@ -1,6 +1,9 @@
 <%- include('partials/testa') %>
 
-<h1 style="margin-top:2rem">La mia pagina</h1>
+<p style="margin-top:1.5rem">
+  <a class="bottone chiaro" href="/area/tutor/messaggi">Messaggi<% if (messaggiNuovi) { %> · <%= messaggiNuovi %> da leggere<% } %></a>
+</p>
+<h1>La mia pagina</h1>
 <p class="guida">
   Stato:
   <span class="stato stato--<%= t.status %>">

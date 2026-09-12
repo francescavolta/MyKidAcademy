@@ -621,6 +621,58 @@ async function meseDi(userId, chiave) {
   return costruisciMese(chiave, rows);
 }
 
+async function conversazione(dove, valore) {
+  const { rows } = await pool.query(
+    `select c.*, u.nome as tutor_nome, u.email as tutor_email, u.immagine_id as tutor_immagine
+     from conversazioni c join users u on u.id = c.tutor_id
+     where c.${dove} = $1`,
+    [valore]
+  );
+  return rows[0] || null;
+}
+
+async function messaggiDi(conversazioneId) {
+  const { rows } = await pool.query(
+    'select * from messaggi where conversazione_id = $1 order by created_at asc',
+    [conversazioneId]
+  );
+  return rows;
+}
+
+async function scriviMessaggio(c, autore, nome, testo) {
+  const pulito = String(testo || '').trim().slice(0, 2000);
+  if (!pulito) return null;
+  const { rows } = await pool.query(
+    'insert into messaggi (conversazione_id, autore, nome, testo) values ($1,$2,$3,$4) returning *',
+    [c.id, autore, nome, pulito]
+  );
+  const campo = { genitore: 'visto_genitore', tutor: 'visto_tutor', coordinamento: 'visto_admin' }[autore];
+  await pool.query(
+    `update conversazioni set ultimo_messaggio = now(), ${campo} = now() where id = $1`,
+    [c.id]
+  );
+  return rows[0];
+}
+
+async function segnaVisto(c, campo) {
+  await pool.query(`update conversazioni set ${campo} = now() where id = $1`, [c.id]);
+}
+
+// Conversazioni con almeno un messaggio non ancora letto da chi guarda.
+async function conversazioniPer({ tutorId, campoVisto }) {
+  const cond = tutorId ? 'where c.tutor_id = $1' : '';
+  const { rows } = await pool.query(
+    `select c.*, u.nome as tutor_nome,
+            (c.${campoVisto} is null or c.ultimo_messaggio > c.${campoVisto}) as da_leggere,
+            (select testo from messaggi m where m.conversazione_id = c.id order by created_at desc limit 1) as ultimo_testo
+     from conversazioni c join users u on u.id = c.tutor_id
+     ${cond}
+     order by c.ultimo_messaggio desc`,
+    tutorId ? [tutorId] : []
+  );
+  return rows;
+}
+
 async function referenzeDi(tutorId, { tutte = false } = {}) {
   const { rows } = await pool.query(
     `select * from referenze
@@ -760,21 +812,45 @@ app.post(
       ]
     );
 
+    const token = crypto.randomBytes(24).toString('hex');
+    const { rows: conv } = await pool.query(
+      `insert into conversazioni (tutor_id, richiesta_id, genitore_nome, genitore_email, token)
+       values ($1,$2,$3,$4,$5) returning id`,
+      [t.id, rows[0].id, genitore_nome.trim(), email, token]
+    );
+    await pool.query(
+      `insert into messaggi (conversazione_id, autore, nome, testo) values ($1,'genitore',$2,$3)`,
+      [
+        conv[0].id,
+        genitore_nome.trim(),
+        `Richiesta di ${labelMansione(mansione)}.` +
+          ((quando || '').trim() ? `\nQuando: ${quando.trim()}` : '') +
+          ((messaggio || '').trim() ? `\n\n${messaggio.trim()}` : '')
+      ]
+    );
+
     const cfg = await impostazioni();
     await invia({
       a: email,
       oggetto: `Abbiamo ricevuto la tua richiesta — ${cfg.nome_sito}`,
       titolo: 'Richiesta ricevuta',
-      testo: `Ciao ${genitore_nome.trim()},\n\nabbiamo ricevuto la tua richiesta per ${labelMansione(mansione)} con ${t.nome}. Ti ricontattiamo noi per confermare giorni e orari.\n\nSe nel frattempo vuoi aggiungere qualcosa, rispondi a questa email.`,
-      azione: { testo: `Vedi la pagina di ${t.nome}`, link: urlAssoluto(req, `/tutor/${t.id}`) },
+      testo: `Ciao ${genitore_nome.trim()},\n\nabbiamo ricevuto la tua richiesta per ${labelMansione(mansione)} con ${t.nome}.\n\nDa questo link puoi scrivere direttamente a ${t.nome.split(' ')[0]} e vedere le sue risposte: tienilo da parte, è il tuo accesso alla conversazione. Anche il coordinamento la legge.`,
+      azione: { testo: 'Apri la conversazione', link: urlAssoluto(req, `/chat/${token}`) },
       rispondiA: cfg.email_contatto
     });
     await avvisaAdmin({
       oggetto: `Nuova richiesta per ${t.nome}`,
       titolo: 'Nuova richiesta dal sito',
       testo: `${genitore_nome.trim()} (${email}${genitore_telefono ? ', ' + genitore_telefono.trim() : ''}) ha chiesto ${labelMansione(mansione)} con ${t.nome}.\n\nQuando: ${(quando || '—').trim()}\n\n${(messaggio || '').trim()}`,
-      azione: { testo: 'Apri il coordinamento', link: urlAssoluto(req, '/area/coordinamento') },
+      azione: { testo: 'Apri la conversazione', link: urlAssoluto(req, '/area/coordinamento/messaggi') },
       rispondiA: email
+    });
+    await invia({
+      a: t.email,
+      oggetto: `Nuova richiesta da ${genitore_nome.trim()}`,
+      titolo: 'Ti hanno cercata',
+      testo: `Ciao ${t.nome},\n\n${genitore_nome.trim()} ti ha chiesto ${labelMansione(mansione)}. Puoi risponderle dalla tua area, nella sezione Messaggi.\n\nIl coordinamento legge la conversazione.`,
+      azione: { testo: 'Apri i messaggi', link: urlAssoluto(req, '/area/tutor/messaggi') }
     });
 
     avvisa(req, `Richiesta inviata. Ti ricontattiamo noi per confermare con ${t.nome}.`);
@@ -824,6 +900,52 @@ app.post(
     });
     avvisa(req, 'Grazie! La referenza viene letta dal coordinamento e poi pubblicata sulla pagina.');
     res.redirect(`/tutor/${t.id}`);
+  })
+);
+
+/* ---------- chat famiglia / tutor ---------- */
+
+app.get(
+  '/chat/:token',
+  wrap(async (req, res) => {
+    const c = await conversazione('token', req.params.token);
+    if (!c) {
+      return res.status(404).render('errore', {
+        titolo: 'Conversazione non trovata',
+        messaggio: 'Questo link non è valido. Controlla di aver copiato tutto l\'indirizzo dall\'email.'
+      });
+    }
+    await segnaVisto(c, 'visto_genitore');
+    res.render('chat', { titolo: `Conversazione con ${c.tutor_nome}`, c, messaggi: await messaggiDi(c.id), chi: 'genitore' });
+  })
+);
+
+app.post(
+  '/chat/:token',
+  wrap(async (req, res) => {
+    const c = await conversazione('token', req.params.token);
+    if (!c) return res.redirect('/');
+    if (!c.aperta) {
+      avvisa(req, 'Questa conversazione è stata chiusa dal coordinamento.', 'errore');
+      return res.redirect(`/chat/${c.token}`);
+    }
+    const m = await scriviMessaggio(c, 'genitore', c.genitore_nome, req.body.testo);
+    if (m) {
+      await invia({
+        a: c.tutor_email,
+        oggetto: `Nuovo messaggio da ${c.genitore_nome}`,
+        titolo: 'Nuovo messaggio',
+        testo: `${c.genitore_nome} ti ha scritto:\n\n"${m.testo}"`,
+        azione: { testo: 'Rispondi', link: urlAssoluto(req, `/area/tutor/messaggi/${c.id}`) }
+      });
+      await avvisaAdmin({
+        oggetto: `Messaggio di ${c.genitore_nome} a ${c.tutor_nome}`,
+        titolo: 'Nuovo messaggio nella chat',
+        testo: `"${m.testo}"`,
+        azione: { testo: 'Apri la conversazione', link: urlAssoluto(req, `/area/coordinamento/messaggi/${c.id}`) }
+      });
+    }
+    res.redirect(`/chat/${c.token}`);
   })
 );
 
@@ -1013,8 +1135,14 @@ app.get(
       `select * from richieste where tutor_id = $1 and stato <> 'chiusa' order by created_at desc`,
       [t.id]
     );
+    const { rows: nonLetti } = await pool.query(
+      `select count(*)::int as n from conversazioni
+       where tutor_id = $1 and (visto_tutor is null or ultimo_messaggio > visto_tutor)`,
+      [t.id]
+    );
     const chiave = MESE_OK.test(req.query.mese || '') ? req.query.mese : meseCorrente();
     res.render('area-tutor', {
+      messaggiNuovi: nonLetti[0].n,
       titolo: 'La mia pagina',
       t,
       giorni: raggruppaPerData(slots),
@@ -1022,6 +1150,55 @@ app.get(
       referenze: await referenzeDi(t.id, { tutte: true }),
       richieste
     });
+  })
+);
+
+app.get(
+  '/area/tutor/messaggi',
+  soloTutor,
+  wrap(async (req, res) => {
+    res.render('messaggi-elenco', {
+      titolo: 'Messaggi',
+      conversazioni: await conversazioniPer({ tutorId: req.utente.id, campoVisto: 'visto_tutor' }),
+      base: '/area/tutor/messaggi'
+    });
+  })
+);
+
+app.get(
+  '/area/tutor/messaggi/:id',
+  soloTutor,
+  wrap(async (req, res) => {
+    const c = await conversazione('id', req.params.id);
+    if (!c || c.tutor_id !== req.utente.id) {
+      return res.status(404).render('errore', { titolo: 'Non trovata', messaggio: 'Questa conversazione non è tua.' });
+    }
+    await segnaVisto(c, 'visto_tutor');
+    res.render('chat', { titolo: `Conversazione con ${c.genitore_nome}`, c, messaggi: await messaggiDi(c.id), chi: 'tutor' });
+  })
+);
+
+app.post(
+  '/area/tutor/messaggi/:id',
+  soloTutor,
+  wrap(async (req, res) => {
+    const c = await conversazione('id', req.params.id);
+    if (!c || c.tutor_id !== req.utente.id) return res.redirect('/area/tutor/messaggi');
+    if (!c.aperta) {
+      avvisa(req, 'Questa conversazione è chiusa.', 'errore');
+      return res.redirect(`/area/tutor/messaggi/${c.id}`);
+    }
+    const m = await scriviMessaggio(c, 'tutor', req.utente.nome, req.body.testo);
+    if (m && c.genitore_email) {
+      await invia({
+        a: c.genitore_email,
+        oggetto: `${req.utente.nome} ti ha risposto`,
+        titolo: 'Nuovo messaggio',
+        testo: `"${m.testo}"`,
+        azione: { testo: 'Apri la conversazione', link: urlAssoluto(req, `/chat/${c.token}`) }
+      });
+    }
+    res.redirect(`/area/tutor/messaggi/${c.id}`);
   })
 );
 
@@ -1130,8 +1307,13 @@ app.get(
        where r.stato = 'in_attesa'
        order by r.created_at desc`
     );
+    const { rows: chatNuove } = await pool.query(
+      `select count(*)::int as n from conversazioni
+       where visto_admin is null or ultimo_messaggio > visto_admin`
+    );
     res.render('area-admin', {
       titolo: 'Coordinamento',
+      messaggiNuovi: chatNuove[0].n,
       refAttesa,
       inAttesa: tutte.filter((t) => t.status === 'in_attesa'),
       attive: tutte.filter((t) => t.status === 'approvato'),
@@ -1321,6 +1503,78 @@ app.get(
     };
     res.setHeader('Content-Disposition', `attachment; filename="mykidacademy-${new Date().toISOString().slice(0, 10)}.json"`);
     res.json(dati);
+  })
+);
+
+/* ---------- chat: il coordinamento vede tutto ---------- */
+
+app.get(
+  '/area/coordinamento/messaggi',
+  soloAdmin,
+  wrap(async (req, res) => {
+    res.render('messaggi-elenco', {
+      titolo: 'Messaggi',
+      conversazioni: await conversazioniPer({ campoVisto: 'visto_admin' }),
+      base: '/area/coordinamento/messaggi'
+    });
+  })
+);
+
+app.get(
+  '/area/coordinamento/messaggi/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const c = await conversazione('id', req.params.id);
+    if (!c) return res.status(404).render('errore', { titolo: 'Non trovata', messaggio: 'Questa conversazione non esiste.' });
+    await segnaVisto(c, 'visto_admin');
+    res.render('chat', {
+      titolo: `${c.genitore_nome} e ${c.tutor_nome}`,
+      c,
+      messaggi: await messaggiDi(c.id),
+      chi: 'coordinamento'
+    });
+  })
+);
+
+app.post(
+  '/area/coordinamento/messaggi/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const c = await conversazione('id', req.params.id);
+    if (!c) return res.redirect('/area/coordinamento/messaggi');
+    const m = await scriviMessaggio(c, 'coordinamento', req.utente.nome || 'Coordinamento', req.body.testo);
+    if (m) {
+      if (c.genitore_email) {
+        await invia({
+          a: c.genitore_email,
+          oggetto: 'Messaggio dal coordinamento',
+          titolo: 'Nuovo messaggio',
+          testo: `"${m.testo}"`,
+          azione: { testo: 'Apri la conversazione', link: urlAssoluto(req, `/chat/${c.token}`) }
+        });
+      }
+      await invia({
+        a: c.tutor_email,
+        oggetto: 'Messaggio dal coordinamento',
+        titolo: 'Nuovo messaggio',
+        testo: `"${m.testo}"`,
+        azione: { testo: 'Apri i messaggi', link: urlAssoluto(req, `/area/tutor/messaggi/${c.id}`) }
+      });
+    }
+    res.redirect(`/area/coordinamento/messaggi/${c.id}`);
+  })
+);
+
+app.post(
+  '/area/coordinamento/messaggi/:id/chiudi',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query(
+      'update conversazioni set aperta = not aperta where id = $1 returning aperta',
+      [req.params.id]
+    );
+    avvisa(req, rows[0] && rows[0].aperta ? 'Conversazione riaperta.' : 'Conversazione chiusa: nessuno può più scrivere.');
+    res.redirect(`/area/coordinamento/messaggi/${req.params.id}`);
   })
 );
 

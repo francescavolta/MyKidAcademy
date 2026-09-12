@@ -1,0 +1,35 @@
+<%- include('partials/testa') %>
+
+<p style="margin-top:1.5rem"><a href="<%= base.startsWith('/area/tutor') ? '/area/tutor' : '/area/coordinamento' %>">← Torna indietro</a></p>
+<h1>Messaggi</h1>
+<p class="guida">
+  <% if (base.startsWith('/area/tutor')) { %>
+    Le conversazioni con le famiglie che ti hanno cercata. Le legge anche il coordinamento.
+  <% } else { %>
+    Tutte le conversazioni fra famiglie e ragazze. Puoi leggerle e intervenire quando serve.
+  <% } %>
+</p>
+
+<% if (conversazioni.length === 0) { %>
+  <div class="vuoto"><p>Nessuna conversazione. Ne nasce una ogni volta che una famiglia manda una richiesta.</p></div>
+<% } else { %>
+  <ul class="agenda">
+    <% conversazioni.forEach(function (c) { %>
+      <li class="giorno <%= c.da_leggere ? 'giorno--nuovo' : '' %>">
+        <h3>
+          <a href="<%= base %>/<%= c.id %>">
+            <%= base.startsWith('/area/tutor') ? c.genitore_nome : c.genitore_nome + ' e ' + c.tutor_nome %>
+          </a>
+          <% if (c.da_leggere) { %><span class="pallino" title="Da leggere"></span><% } %>
+          <% if (!c.aperta) { %><span class="data">· chiusa</span><% } %>
+        </h3>
+        <p class="testo" style="margin:.2rem 0">
+          <%= c.ultimo_testo && c.ultimo_testo.length > 110 ? c.ultimo_testo.slice(0, 110) + '…' : (c.ultimo_testo || '') %>
+        </p>
+        <div class="data"><%= new Date(c.ultimo_messaggio).toLocaleString('it-IT', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) %></div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<%- include('partials/piede') %>

@@ -89,6 +89,24 @@ Serve un PostgreSQL raggiungibile. Se usi quello di Render dall'esterno, prendi 
 | `views/admin-aspetto.ejs` | la pagina "Aspetto del sito" nel coordinamento |
 | `views/` | le pagine. `partials/campi-tutor.ejs` è il modulo condiviso tra candidatura, area tutor e scheda del coordinamento |
 
+## Chat famiglia / tutor
+
+Tabelle `conversazioni` e `messaggi`. Una conversazione nasce **da sola** quando una famiglia manda una richiesta: il testo della richiesta diventa il primo messaggio.
+
+Chi entra e come:
+
+| Chi | Come accede |
+|---|---|
+| Famiglia | link segreto `/chat/<token>` ricevuto nell'email di conferma. Nessuna registrazione |
+| Tutor | dalla sua area, sezione Messaggi (solo le proprie) |
+| Coordinamento | `/area/coordinamento/messaggi`: tutte, con la possibilità di scrivere come "Coordinamento" e di chiudere una conversazione |
+
+Ogni nuovo messaggio manda un'email a chi deve leggerlo (e al coordinamento quando scrive la famiglia). I non letti si calcolano confrontando `ultimo_messaggio` con `visto_tutor` / `visto_admin` / `visto_genitore`, e compaiono come contatore nelle due aree.
+
+Il fatto che il coordinamento legga è **scritto in chiaro** in cima alla conversazione a entrambe le parti: è una scelta voluta, non una sorveglianza nascosta, e in un servizio che coinvolge minori è anche una tutela per la tutor. Chiudendo una conversazione nessuno può più scrivere, tranne il coordinamento.
+
+Il token è una stringa casuale di 24 byte: chi ha il link entra. Va bene per messaggi organizzativi; non è il posto per dati delicati, e questo è scritto anche nella privacy.
+
 ## Email
 
 `mail.js` manda le email con [Resend](https://resend.com). Senza `RESEND_API_KEY` il sito funziona identico e scrive nei log quello che avrebbe mandato: niente si rompe, semplicemente nessuno viene avvisato.

@@ -776,3 +776,46 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
   }
   .cal-lista strong { text-transform: capitalize; font-size: 0.9rem; width: 100%; }
 }
+
+/* ---------- chat ---------- */
+
+.chat-testa { margin-top: 1.5rem; }
+.chat-testa h1 { margin-bottom: 0.2rem; }
+.chat-testa .riga-azioni { margin-top: 0.8rem; }
+
+.chat {
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0 0;
+  display: grid;
+  gap: 0.8rem;
+  max-width: 44rem;
+}
+
+.bolla {
+  border: 1px solid var(--velo);
+  border-radius: var(--raggio);
+  background: #fff;
+  padding: 0.7rem 0.9rem;
+  max-width: 85%;
+}
+.bolla p { margin: 0.2rem 0 0.3rem; white-space: pre-wrap; }
+.bolla-chi { font-size: 0.82rem; font-weight: 700; color: var(--prugna); }
+.bolla-quando { font-size: 0.75rem; color: var(--grigio); }
+
+.bolla--mia { margin-left: auto; background: var(--velo); border-color: var(--rosa); }
+.bolla--coordinamento { border-color: var(--rosa); border-style: dashed; }
+.bolla--coordinamento .bolla-chi { color: var(--inchiostro); }
+
+.chat-scrivi { margin-top: 1.5rem; max-width: 44rem; }
+
+.giorno--nuovo { border-color: var(--prugna); }
+.pallino {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--prugna);
+  vertical-align: middle;
+  margin-left: 0.3rem;
+}

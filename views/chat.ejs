@@ -1,0 +1,57 @@
+<%- include('partials/testa') %>
+
+<%
+  var azione = chi === 'genitore' ? '/chat/' + c.token
+             : chi === 'tutor' ? '/area/tutor/messaggi/' + c.id
+             : '/area/coordinamento/messaggi/' + c.id;
+  var indietro = chi === 'genitore' ? null
+             : chi === 'tutor' ? '/area/tutor/messaggi'
+             : '/area/coordinamento/messaggi';
+%>
+
+<% if (indietro) { %><p style="margin-top:1.5rem"><a href="<%= indietro %>">← Tutti i messaggi</a></p><% } %>
+
+<div class="chat-testa">
+  <h1><%= chi === 'tutor' ? c.genitore_nome : c.tutor_nome %></h1>
+  <p class="data">
+    <% if (chi === 'genitore') { %>
+      Stai scrivendo a <%= c.tutor_nome %>. Il coordinamento legge questa conversazione.
+    <% } else if (chi === 'tutor') { %>
+      Conversazione con <%= c.genitore_nome %>. La legge anche il coordinamento.
+    <% } else { %>
+      Fra <%= c.genitore_nome %> (<%= c.genitore_email %>) e <%= c.tutor_nome %>.
+    <% } %>
+  </p>
+  <% if (chi === 'coordinamento') { %>
+    <div class="riga-azioni">
+      <a class="bottone piccolo chiaro" href="/area/coordinamento/tutor/<%= c.tutor_id %>">Scheda di <%= c.tutor_nome.split(' ')[0] %></a>
+      <form method="post" action="/area/coordinamento/messaggi/<%= c.id %>/chiudi">
+        <button class="bottone piccolo chiaro" type="submit"><%= c.aperta ? 'Chiudi la conversazione' : 'Riapri' %></button>
+      </form>
+    </div>
+  <% } %>
+</div>
+
+<ol class="chat">
+  <% messaggi.forEach(function (m) { %>
+    <li class="bolla bolla--<%= m.autore %> <%= m.autore === chi ? 'bolla--mia' : '' %>">
+      <div class="bolla-chi"><%= m.nome || m.autore %><%= m.autore === 'coordinamento' ? ' · coordinamento' : '' %></div>
+      <p><%= m.testo %></p>
+      <div class="bolla-quando"><%= new Date(m.created_at).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %></div>
+    </li>
+  <% }) %>
+</ol>
+
+<% if (c.aperta || chi === 'coordinamento') { %>
+  <form class="modulo chat-scrivi" method="post" action="<%= azione %>">
+    <div>
+      <label for="testo">Scrivi un messaggio</label>
+      <textarea id="testo" name="testo" maxlength="2000" required style="min-height:5rem"></textarea>
+    </div>
+    <div><button class="bottone" type="submit">Invia</button></div>
+  </form>
+<% } else { %>
+  <p class="avviso">Questa conversazione è stata chiusa dal coordinamento: non si può più scrivere.</p>
+<% } %>
+
+<%- include('partials/piede') %>

@@ -102,6 +102,32 @@ create index if not exists articoli_pubblicati on articoli (pubblicato, created_
 alter table articoli add column if not exists immagine_id integer references immagini(id) on delete set null;
 alter table immagini add column if not exists alt text not null default '';
 
+create table if not exists conversazioni (
+  id              serial primary key,
+  tutor_id        integer not null references users(id) on delete cascade,
+  richiesta_id    integer,
+  genitore_nome   text not null default '',
+  genitore_email  text not null default '',
+  token           text unique not null,
+  aperta          boolean not null default true,
+  ultimo_messaggio timestamptz not null default now(),
+  visto_tutor     timestamptz,
+  visto_admin     timestamptz,
+  visto_genitore  timestamptz,
+  created_at      timestamptz not null default now()
+);
+create index if not exists conversazioni_tutor on conversazioni (tutor_id, ultimo_messaggio desc);
+
+create table if not exists messaggi (
+  id              serial primary key,
+  conversazione_id integer not null references conversazioni(id) on delete cascade,
+  autore          text not null,           -- 'genitore' | 'tutor' | 'coordinamento'
+  nome            text not null default '',
+  testo           text not null,
+  created_at      timestamptz not null default now()
+);
+create index if not exists messaggi_conversazione on messaggi (conversazione_id, created_at asc);
+
 create table if not exists referenze (
   id         serial primary key,
   tutor_id   integer not null references users(id) on delete cascade,
@@ -153,6 +179,7 @@ create table if not exists richieste (
 const AGGIUNTE = `
 alter table users add column if not exists immagine_id integer references immagini(id) on delete set null;
 alter table richieste add column if not exists disponibilita_id integer references disponibilita(id) on delete set null;
+alter table conversazioni add column if not exists richiesta_id integer references richieste(id) on delete set null;
 `;
 
 async function initDb() {
