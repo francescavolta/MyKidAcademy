@@ -93,7 +93,13 @@ Serve un PostgreSQL raggiungibile. Se usi quello di Render dall'esterno, prendi 
 
 **Calendario a griglia** — nell'area tutor e nella scheda del coordinamento, sopra l'agenda per giorno (che resta). Griglia del mese da lunedì a domenica, frecce per cambiare mese (`?mese=2026-10`), fasce verdi se libere e rosse se occupate, bordo sul giorno di oggi. La griglia la costruisce `costruisciMese()` in `server.js`, la disegna `views/partials/calendario.ejs` — si riusa passando `mese` e `base` (l'indirizzo su cui puntano le frecce).
 
-**Referenze** — tabella `referenze` (tutor, firma, stelle 1-5, commento). Le aggiunge e le cancella solo il coordinamento, dalla scheda della tutor. Il riquadro (`views/partials/referenze.ejs`) non compare se non ce n'è nessuna. La media e il numero si vedono anche sulle schede in elenco e in cima al profilo, calcolate nella query `SELECT_TUTOR`.
+**Referenze** — tabella `referenze` (tutor, firma, email, stelle 1-5, commento, `stato`, `inserita_da`).
+
+Le scrivono le famiglie dal modulo sulla pagina pubblica della tutor (`POST /tutor/:id/referenza`). Arrivano con `stato = 'in_attesa'` e non si vedono da nessuna parte fino a quando il coordinamento non le pubblica: l'elenco di quelle da approvare sta in cima all'area coordinamento, e ognuna ha Pubblica / Elimina. Il coordinamento può anche inserirne una a mano dalla scheda della tutor (per quelle arrivate a voce): quella nasce già pubblicata.
+
+Controlli sul modulo pubblico: firma obbligatoria, commento di almeno 15 caratteri, una referenza per tutor per sessione, email facoltativa e mai mostrata al pubblico. La moderazione resta la difesa vera.
+
+Il riquadro (`views/partials/referenze.ejs`) non compare se non c'è niente da mostrare. Media e numero, calcolati sulle sole pubblicate in `SELECT_TUTOR`, appaiono in cima al profilo e sulle schede in elenco.
 
 ## Aspetto, immagini e blog
 

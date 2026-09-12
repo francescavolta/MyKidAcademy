@@ -14,6 +14,7 @@
   <li><b><%= inAttesa.length %></b> candidature da vedere</li>
   <li><b><%= attive.length %></b> ragazze attive</li>
   <li><b><%= richieste.filter(function (r) { return r.stato === 'nuova'; }).length %></b> richieste nuove</li>
+  <li><b><%= refAttesa.length %></b> referenze da approvare</li>
 </ul>
 
 <section>
@@ -88,6 +89,32 @@
     </div>
   <% } %>
 </section>
+
+<% if (refAttesa.length) { %>
+<section>
+  <h2>Referenze da approvare</h2>
+  <p class="guida">Le hanno scritte le famiglie dalla pagina della ragazza. Finché non le pubblichi non si vedono.</p>
+  <ul class="agenda">
+    <% refAttesa.forEach(function (r) { %>
+      <li class="giorno">
+        <h3><%= r.tutor_nome %> · <span class="stelle"><%= stelline(r.stelle) %></span></h3>
+        <p class="testo" style="margin:.2rem 0"><%= r.commento %></p>
+        <div class="data"><%= r.autore %><% if (r.email) { %> · <%= r.email %><% } %> · <%= new Date(r.created_at).toLocaleDateString('it-IT') %></div>
+        <div class="riga-azioni" style="margin-top:.6rem">
+          <form method="post" action="/area/coordinamento/referenze/<%= r.id %>/pubblica">
+            <button class="bottone piccolo" type="submit">Pubblica</button>
+          </form>
+          <form method="post" action="/area/coordinamento/referenze/<%= r.id %>/elimina"
+                onsubmit="return confirm('Eliminare questa referenza?')">
+            <button class="bottone piccolo chiaro" type="submit">Elimina</button>
+          </form>
+          <a class="bottone piccolo chiaro" href="/area/coordinamento/tutor/<%= r.tutor_id %>">Apri la scheda</a>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+<% } %>
 
 <section>
   <h2>Richieste dei genitori</h2>

@@ -3,21 +3,34 @@
     <div class="referenze-testa">
       <h3>Referenze</h3>
       <span class="stelle" aria-label="<%= referenze.media %> stelle su 5"><%= stelline(referenze.media) %></span>
-      <span class="data"><%= referenze.media %> su 5 · <%= referenze.elenco.length %> <%= referenze.elenco.length === 1 ? 'referenza' : 'referenze' %></span>
+      <span class="data"><%= referenze.media %> su 5 · <%= referenze.pubblicate %> <%= referenze.pubblicate === 1 ? 'referenza' : 'referenze' %><% if (referenze.inAttesa) { %> · <%= referenze.inAttesa %> da approvare<% } %></span>
     </div>
     <ul>
       <% referenze.elenco.forEach(function (r) { %>
-        <li>
+        <li class="<%= r.stato === 'in_attesa' ? 'referenze--attesa' : '' %>">
           <span class="stelle" aria-label="<%= r.stelle %> stelle su 5"><%= stelline(r.stelle) %></span>
+          <% if (r.stato === 'in_attesa') { %>
+            <span class="stato stato--in_attesa">da approvare</span>
+          <% } %>
           <p><%= r.commento %></p>
           <div class="data">
             <%= r.autore || 'Una famiglia' %> · <%= new Date(r.created_at).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }) %>
           </div>
+          <% if (r.email && utente && utente.role === 'admin') { %>
+            <div class="data"><%= r.email %></div>
+          <% } %>
           <% if (utente && utente.role === 'admin' && gestisci) { %>
-            <form method="post" action="/area/coordinamento/referenze/<%= r.id %>/elimina"
-                  onsubmit="return confirm('Eliminare questa referenza?')">
-              <button class="link-testo" type="submit">Elimina</button>
-            </form>
+            <div class="riga-azioni" style="margin-top:.5rem">
+              <% if (r.stato === 'in_attesa') { %>
+                <form method="post" action="/area/coordinamento/referenze/<%= r.id %>/pubblica">
+                  <button class="bottone piccolo" type="submit">Pubblica</button>
+                </form>
+              <% } %>
+              <form method="post" action="/area/coordinamento/referenze/<%= r.id %>/elimina"
+                    onsubmit="return confirm('Eliminare questa referenza?')">
+                <button class="bottone piccolo chiaro" type="submit">Elimina</button>
+              </form>
+            </div>
           <% } %>
         </li>
       <% }) %>

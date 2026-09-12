@@ -586,3 +586,14 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
 .referenze p { margin: 0.3rem 0 0.35rem; }
 
 .stelle { color: #c9971c; letter-spacing: 1px; }
+
+.referenze--attesa { background: #fffaf0; border-radius: var(--raggio-piccolo); padding: 0.7rem; }
+
+.lascia-referenza {
+  border: 1px dashed var(--rosa);
+  border-radius: var(--raggio);
+  padding: 0.9rem 1.1rem;
+  margin-top: 1.2rem;
+}
+.lascia-referenza summary { cursor: pointer; color: var(--prugna); font-weight: 700; }
+.lascia-referenza[open] summary { margin-bottom: 0.8rem; }

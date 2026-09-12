@@ -381,8 +381,8 @@ const SELECT_TUTOR = `
   select u.*,
     coalesce(array_agg(distinct m.mansione) filter (where m.mansione is not null), '{}') as mansioni,
     coalesce(array_agg(distinct t.nome) filter (where t.nome is not null), '{}') as materie,
-    (select count(*)::int from referenze r where r.tutor_id = u.id) as referenze_n,
-    (select round(avg(r.stelle)::numeric, 1) from referenze r where r.tutor_id = u.id) as stelle_media
+    (select count(*)::int from referenze r where r.tutor_id = u.id and r.stato = 'pubblicata') as referenze_n,
+    (select round(avg(r.stelle)::numeric, 1) from referenze r where r.tutor_id = u.id and r.stato = 'pubblicata') as stelle_media
   from users u
   left join mansioni m on m.user_id = u.id
   left join materie t on t.user_id = u.id
@@ -505,13 +505,21 @@ async function meseDi(userId, chiave) {
   return costruisciMese(chiave, rows);
 }
 
-async function referenzeDi(tutorId) {
+async function referenzeDi(tutorId, { tutte = false } = {}) {
   const { rows } = await pool.query(
-    'select * from referenze where tutor_id = $1 order by created_at desc',
+    `select * from referenze
+     where tutor_id = $1 ${tutte ? '' : "and stato = 'pubblicata'"}
+     order by (stato = 'in_attesa') desc, created_at desc`,
     [tutorId]
   );
-  const media = rows.length ? rows.reduce((t, r) => t + r.stelle, 0) / rows.length : 0;
-  return { elenco: rows, media: Math.round(media * 10) / 10 };
+  const pubblicate = rows.filter((r) => r.stato === 'pubblicata');
+  const media = pubblicate.length ? pubblicate.reduce((t, r) => t + r.stelle, 0) / pubblicate.length : 0;
+  return {
+    elenco: rows,
+    pubblicate: pubblicate.length,
+    inAttesa: rows.filter((r) => r.stato === 'in_attesa').length,
+    media: Math.round(media * 10) / 10
+  };
 }
 
 function raggruppaPerData(slots) {
@@ -622,6 +630,39 @@ app.post(
   })
 );
 
+app.post(
+  '/tutor/:id/referenza',
+  wrap(async (req, res) => {
+    const t = await tutorSingolo(req.params.id);
+    if (!t || t.status !== 'approvato') return res.redirect('/tutor');
+
+    const stelle = Math.min(5, Math.max(1, parseInt(req.body.stelle, 10) || 0));
+    const commento = String(req.body.commento || '').trim().slice(0, 800);
+    const autore = String(req.body.autore || '').trim().slice(0, 120);
+
+    if (!autore || commento.length < 15) {
+      avvisa(req, 'Serve il tuo nome e qualche parola in più nel commento.', 'errore');
+      return res.redirect(`/tutor/${t.id}#referenze`);
+    }
+
+    // Una referenza per tutor a testa, per non riempire la pagina di doppioni.
+    req.session.referenzeLasciate = req.session.referenzeLasciate || [];
+    if (req.session.referenzeLasciate.includes(String(t.id))) {
+      avvisa(req, 'Hai già lasciato una referenza per questa persona. Grazie!', 'errore');
+      return res.redirect(`/tutor/${t.id}`);
+    }
+
+    await pool.query(
+      `insert into referenze (tutor_id, autore, email, stelle, commento, stato, inserita_da)
+       values ($1,$2,$3,$4,$5,'in_attesa','genitore')`,
+      [t.id, autore, String(req.body.email || '').trim().toLowerCase().slice(0, 160), stelle, commento]
+    );
+    req.session.referenzeLasciate.push(String(t.id));
+    avvisa(req, 'Grazie! La referenza viene letta dal coordinamento e poi pubblicata sulla pagina.');
+    res.redirect(`/tutor/${t.id}`);
+  })
+);
+
 /* ---------- candidatura tutor ---------- */
 
 app.get('/lavora-con-noi', (req, res) => {
@@ -722,7 +763,7 @@ app.get(
       t,
       giorni: raggruppaPerData(slots),
       mese: await meseDi(t.id, chiave),
-      referenze: await referenzeDi(t.id),
+      referenze: await referenzeDi(t.id, { tutte: true }),
       richieste
     });
   })
@@ -794,8 +835,15 @@ app.get(
        order by (r.stato = 'nuova') desc, r.created_at desc
        limit 100`
     );
+    const { rows: refAttesa } = await pool.query(
+      `select r.*, u.nome as tutor_nome from referenze r
+       join users u on u.id = r.tutor_id
+       where r.stato = 'in_attesa'
+       order by r.created_at desc`
+    );
     res.render('area-admin', {
       titolo: 'Coordinamento',
+      refAttesa,
       inAttesa: tutte.filter((t) => t.status === 'in_attesa'),
       attive: tutte.filter((t) => t.status === 'approvato'),
       altre: tutte.filter((t) => ['rifiutato', 'sospeso'].includes(t.status)),
@@ -836,7 +884,7 @@ app.get(
       t,
       giorni: raggruppaPerData(slots),
       mese: await meseDi(t.id, chiave),
-      referenze: await referenzeDi(t.id),
+      referenze: await referenzeDi(t.id, { tutte: true }),
       richieste,
       STATI_UTENTE
     });
@@ -934,11 +982,25 @@ app.post(
       return res.redirect(`/area/coordinamento/tutor/${req.params.id}`);
     }
     await pool.query(
-      'insert into referenze (tutor_id, autore, stelle, commento) values ($1,$2,$3,$4)',
+      `insert into referenze (tutor_id, autore, stelle, commento, stato, inserita_da)
+       values ($1,$2,$3,$4,'pubblicata','coordinamento')`,
       [req.params.id, String(req.body.autore || '').trim().slice(0, 120), stelle, commento]
     );
     avvisa(req, 'Referenza aggiunta: ora si vede sulla sua pagina.');
     res.redirect(`/area/coordinamento/tutor/${req.params.id}`);
+  })
+);
+
+app.post(
+  '/area/coordinamento/referenze/:id/pubblica',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query(
+      "update referenze set stato = 'pubblicata' where id = $1 returning tutor_id",
+      [req.params.id]
+    );
+    avvisa(req, 'Referenza pubblicata.');
+    res.redirect(rows[0] ? `/area/coordinamento/tutor/${rows[0].tutor_id}` : '/area/coordinamento');
   })
 );
 

@@ -14,6 +14,9 @@
 <% } %>
 
 <%- include('partials/referenze', { referenze: referenze, gestisci: false }) %>
+<% if (referenze.inAttesa) { %>
+  <p class="data">Le referenze le scrivono le famiglie dalla tua pagina; quelle in attesa vengono lette dal coordinamento prima di comparire.</p>
+<% } %>
 
 <div class="due-colonne" style="margin-top:2rem">
   <div>

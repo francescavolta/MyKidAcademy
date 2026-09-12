@@ -29,7 +29,40 @@
       <p style="margin:0"><span class="stelle"><%= stelline(t.stelle_media) %></span> <span class="data"><%= Number(t.stelle_media) %> su 5 · <%= t.referenze_n %> referenze</span></p>
     <% } %>
 
+    <span id="referenze"></span>
     <%- include('partials/referenze', { referenze: referenze, gestisci: false }) %>
+
+    <details class="lascia-referenza">
+      <summary>Hai già lavorato con <%= t.nome.split(' ')[0] %>? Lascia una referenza</summary>
+      <p class="testo">La leggiamo noi e poi la pubblichiamo su questa pagina. Non pubblichiamo la tua email.</p>
+      <form class="modulo" method="post" action="/tutor/<%= t.id %>/referenza">
+        <div class="doppia">
+          <div>
+            <label for="autore">Come ti firmi <span class="aiuto">Es. "Anna, mamma di Luca".</span></label>
+            <input id="autore" name="autore" type="text" maxlength="120" required>
+          </div>
+          <div>
+            <label for="stelle">Quante stelle</label>
+            <select id="stelle" name="stelle">
+              <option value="5">★★★★★ — 5</option>
+              <option value="4">★★★★☆ — 4</option>
+              <option value="3">★★★☆☆ — 3</option>
+              <option value="2">★★☆☆☆ — 2</option>
+              <option value="1">★☆☆☆☆ — 1</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label for="email">La tua email <span class="aiuto">Solo per poterti contattare se serve. Facoltativa.</span></label>
+          <input id="email" name="email" type="email">
+        </div>
+        <div>
+          <label for="commento">Com'è andata</label>
+          <textarea id="commento" name="commento" minlength="15" maxlength="800" required></textarea>
+        </div>
+        <div><button class="bottone" type="submit">Invia la referenza</button></div>
+      </form>
+    </details>
 
     <h3 style="margin-top:1.8rem">Quando è libera</h3>
     <% if (giorni.length === 0) { %>

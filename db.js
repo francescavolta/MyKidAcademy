@@ -89,6 +89,9 @@ create table if not exists referenze (
   created_at timestamptz not null default now()
 );
 create index if not exists referenze_tutor on referenze (tutor_id, created_at desc);
+alter table referenze add column if not exists stato text not null default 'pubblicata';
+alter table referenze add column if not exists email text not null default '';
+alter table referenze add column if not exists inserita_da text not null default 'coordinamento';
 
 create table if not exists sezioni (
   id            serial primary key,
