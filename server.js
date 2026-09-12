@@ -86,10 +86,14 @@ const IMPAGINAZIONI_BLOG = { elenco: 'Elenco semplice', schede: 'Schede con imma
 
 const CAMPI_ASPETTO = [
   { chiave: 'nome_sito', gruppo: 'Testi', label: 'Nome del sito', tipo: 'testo', def: 'MyKidAcademy' },
-  { chiave: 'titolo_home', gruppo: 'Testi', label: 'Titolo grande in home', tipo: 'area', def: 'Una persona di fiducia\nper quello che serve a casa.', aiuto: 'Dove vai a capo tu, va a capo anche il sito.' },
-  { chiave: 'sottotitolo_home', gruppo: 'Testi', label: 'Frase sotto il titolo', tipo: 'area', def: 'Selezioniamo noi le ragazze che collaborano con noi, una per una. Tu scegli di cosa hai bisogno, guardi chi è libera e ci pensiamo noi a organizzare.' },
+  { chiave: 'titolo_home', gruppo: 'Home', label: 'Titolo grande in home', tipo: 'area', def: 'Una persona di fiducia\nper quello che serve a casa.', aiuto: 'Dove vai a capo tu, va a capo anche il sito.' },
+  { chiave: 'sottotitolo_home', gruppo: 'Home', label: 'Frase sotto il titolo', tipo: 'area', def: 'Selezioniamo noi le ragazze che collaborano con noi, una per una. Tu scegli di cosa hai bisogno, guardi chi è libera e ci pensiamo noi a organizzare.' },
   { chiave: 'email_contatto', gruppo: 'Testi', label: 'Email di contatto', tipo: 'testo', def: 'ciao@esempio.it' },
   { chiave: 'testo_piede', gruppo: 'Testi', label: 'Riga in fondo alle pagine', tipo: 'testo', def: 'ripetizioni, aiuto compiti, babysitter e aiuto in casa.' },
+
+  { chiave: 'home_immagine', gruppo: 'Home', label: 'Immagine principale', tipo: 'immagine', def: '', aiuto: 'Si carica da Immagini. Lascia "Nessuna" per la home senza foto.' },
+  { chiave: 'home_immagine_stile', gruppo: 'Home', label: 'Come si vede', tipo: 'scelta', opzioni: { accanto: 'Accanto al titolo', sotto: 'Larga sotto al titolo', sfondo: 'Come sfondo, col titolo sopra' }, def: 'accanto' },
+  { chiave: 'home_immagine_2', gruppo: 'Home', label: 'Seconda immagine (in fondo alla home)', tipo: 'immagine', def: '' },
 
   { chiave: 'font', gruppo: 'Caratteri', label: 'Coppia di caratteri', tipo: 'font', def: 'fraunces-karla' },
   { chiave: 'scala', gruppo: 'Caratteri', label: 'Dimensione del testo', tipo: 'scelta', opzioni: { normale: 'Normale', grande: 'Grande (più leggibile)' }, def: 'normale' },
@@ -114,7 +118,7 @@ const CAMPI_ASPETTO = [
   { chiave: 'colore_blog_sfondo', gruppo: 'Blog', label: 'Sfondo delle pagine del blog', tipo: 'colore', def: '#fff8fa' }
 ];
 
-const GRUPPI_ASPETTO = ['Testi', 'Caratteri', 'Colori', 'Forme', 'Blog'];
+const GRUPPI_ASPETTO = ['Testi', 'Home', 'Caratteri', 'Colori', 'Forme', 'Blog'];
 
 function scurisci(hex, quanto = 0.22) {
   const m = /^#([0-9a-f]{6})$/i.exec(String(hex || ''));
@@ -150,35 +154,71 @@ function esc(t) {
 function inLinea(t) {
   return esc(t)
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/(^|\s)\*([^*]+)\*/g, '$1<em>$2</em>');
+    .replace(/(^|\s)\*([^*]+)\*/g, '$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" rel="noopener">$1</a>');
 }
 
-// Da testo semplice a HTML: riga vuota = nuovo paragrafo, "## " = sottotitolo, "- " = elenco.
+// Da testo semplice a HTML. Ogni riga è valutata da sola: "## " sottotitolo,
+// "### " sotto-sottotitolo, "- " elenco, "[img:N]" immagine, riga vuota nuovo paragrafo.
 function corpoHtml(testo) {
-  return String(testo || '')
-    .replace(/\r\n/g, '\n')
-    .split(/\n{2,}/)
-    .map((b) => b.trim())
-    .filter(Boolean)
-    .map((b) => {
-      const righe = b.split('\n');
-      if (righe.every((r) => /^\s*[-*]\s+/.test(r))) {
-        return '<ul>' + righe.map((r) => '<li>' + inLinea(r.replace(/^\s*[-*]\s+/, '')) + '</li>').join('') + '</ul>';
-      }
-      if (righe.length === 1 && /^##\s+/.test(righe[0])) {
-        return '<h2>' + inLinea(righe[0].replace(/^##\s+/, '')) + '</h2>';
-      }
-      const img = /^\[img:(\d+)(?:\|([^\]]*))?\]$/.exec(righe[0]);
-      if (righe.length === 1 && img) {
-        return (
-          '<figure><img src="/immagini/' + img[1] + '" alt="' + esc(img[2] || '') + '" loading="lazy">' +
+  const righe = String(testo || '').replace(/\r\n/g, '\n').split('\n');
+  const out = [];
+  let paragrafo = [];
+  let elenco = [];
+
+  const chiudiParagrafo = () => {
+    if (paragrafo.length) out.push('<p>' + paragrafo.join('<br>') + '</p>');
+    paragrafo = [];
+  };
+  const chiudiElenco = () => {
+    if (elenco.length) out.push('<ul>' + elenco.map((v) => '<li>' + v + '</li>').join('') + '</ul>');
+    elenco = [];
+  };
+  const chiudiTutto = () => {
+    chiudiParagrafo();
+    chiudiElenco();
+  };
+
+  for (const riga of righe) {
+    const r = riga.trim();
+
+    if (!r) {
+      chiudiTutto();
+      continue;
+    }
+
+    const titolo = /^(#{2,3})\s+(.*)$/.exec(r);
+    if (titolo) {
+      chiudiTutto();
+      const tag = titolo[1].length === 2 ? 'h2' : 'h3';
+      out.push('<' + tag + '>' + inLinea(titolo[2]) + '</' + tag + '>');
+      continue;
+    }
+
+    const img = /^\[img:(\d+)(?:\|([^\]]*))?\]$/.exec(r);
+    if (img) {
+      chiudiTutto();
+      out.push(
+        '<figure><img src="/immagini/' + img[1] + '" alt="' + esc(img[2] || '') + '" loading="lazy">' +
           (img[2] ? '<figcaption>' + esc(img[2]) + '</figcaption>' : '') +
           '</figure>'
-        );
-      }
-      return '<p>' + righe.map(inLinea).join('<br>') + '</p>';
-    })
-    .join('\n');
+      );
+      continue;
+    }
+
+    const voce = /^[-*]\s+(.*)$/.exec(r);
+    if (voce) {
+      chiudiParagrafo();
+      elenco.push(inLinea(voce[1]));
+      continue;
+    }
+
+    chiudiElenco();
+    paragrafo.push(inLinea(r));
+  }
+
+  chiudiTutto();
+  return out.join('\n');
 }
 
 function slugify(s) {
@@ -822,7 +862,8 @@ app.get(
   '/area/coordinamento/aspetto',
   soloAdmin,
   wrap(async (req, res) => {
-    res.render('admin-aspetto', { titolo: 'Aspetto del sito', CAMPI_ASPETTO, GRUPPI_ASPETTO });
+    const { rows: immagini } = await pool.query('select id, nome from immagini order by created_at desc');
+    res.render('admin-aspetto', { titolo: 'Aspetto del sito', CAMPI_ASPETTO, GRUPPI_ASPETTO, immagini });
   })
 );
 
@@ -835,9 +876,10 @@ app.post(
       if (c.tipo === 'colore' && !/^#[0-9a-fA-F]{6}$/.test(v)) v = c.def;
       if (c.tipo === 'font' && !FONT[v]) v = c.def;
       if (c.tipo === 'scelta' && !Object.keys(c.opzioni).includes(v)) v = c.def;
+      if (c.tipo === 'immagine' && !/^\d+$/.test(v)) v = '';
       if (c.tipo === 'testo') v = v.slice(0, 200);
       if (c.tipo === 'area') v = v.slice(0, 700);
-      if (v === '') v = c.def;
+      if (v === '' && c.tipo !== 'immagine') v = c.def;
       await pool.query(
         `insert into impostazioni (chiave, valore) values ($1, $2)
          on conflict (chiave) do update set valore = excluded.valore`,

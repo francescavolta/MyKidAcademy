@@ -390,3 +390,88 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
   border-radius: var(--raggio-piccolo); display: block; margin-bottom: 0.7rem;
 }
 .pagina-blog { background: var(--blog-sfondo); }
+
+/* ---------- barra strumenti dell'articolo ---------- */
+
+.strumenti {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem;
+  border: 1px solid var(--rosa);
+  border-bottom: 0;
+  border-radius: var(--raggio-piccolo) var(--raggio-piccolo) 0 0;
+  background: var(--velo);
+}
+
+.strumenti button {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--rosa);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--inchiostro);
+  cursor: pointer;
+}
+.strumenti button:hover { background: var(--velo); }
+.strumenti select { width: auto; max-width: 12rem; padding: 0.25rem 0.5rem; font-size: 0.9rem; }
+.divisore { width: 1px; height: 1.4rem; background: var(--rosa); margin: 0 0.3rem; }
+
+.strumenti + textarea { border-radius: 0 0 var(--raggio-piccolo) var(--raggio-piccolo); }
+
+.anteprima {
+  border: 1px solid var(--velo);
+  border-radius: var(--raggio);
+  background: #fff;
+  padding: 1rem 1.2rem;
+  max-width: none;
+}
+.anteprima > :first-child { margin-top: 0; }
+.anteprima img { max-width: 100%; height: auto; }
+
+/* ---------- immagini in home ---------- */
+
+.hero--accanto {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 2.5rem;
+  align-items: center;
+}
+.hero--accanto .scelta { grid-column: 1 / -1; }
+
+.hero-foto, .hero-larga {
+  width: 100%;
+  height: auto;
+  border-radius: var(--raggio);
+  display: block;
+  object-fit: cover;
+}
+.hero-foto { max-height: 380px; }
+.hero-larga { margin-top: 2rem; max-height: 420px; }
+
+.hero-sfondo {
+  background-size: cover;
+  background-position: center;
+  border-radius: var(--raggio);
+  padding: clamp(2rem, 6vw, 4.5rem) clamp(1.2rem, 4vw, 3rem);
+  position: relative;
+  isolation: isolate;
+}
+.hero-sfondo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(100deg, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.18));
+  z-index: -1;
+}
+.hero-sopra { max-width: 34rem; }
+.hero-sopra h1, .hero-sopra p { color: #fff; }
+.hero-sopra .guida { color: rgba(255, 255, 255, 0.92); }
+
+@media (max-width: 760px) {
+  .hero--accanto { grid-template-columns: 1fr; gap: 1.5rem; }
+  .hero-foto { max-height: 260px; }
+}

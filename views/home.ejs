@@ -1,8 +1,28 @@
 <%- include('partials/testa') %>
 
-<section class="hero">
-  <h1><%- aCapo(cfg.titolo_home) %></h1>
-  <p class="guida"><%= cfg.sottotitolo_home %></p>
+<% var stile = cfg.home_immagine ? cfg.home_immagine_stile : 'niente'; %>
+
+<section class="hero hero--<%= stile %>">
+  <% if (stile === 'sfondo') { %>
+    <div class="hero-sfondo" style="background-image:url('/immagini/<%= cfg.home_immagine %>')">
+      <div class="hero-sopra">
+        <h1><%- aCapo(cfg.titolo_home) %></h1>
+        <p class="guida"><%= cfg.sottotitolo_home %></p>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="hero-testo">
+      <h1><%- aCapo(cfg.titolo_home) %></h1>
+      <p class="guida"><%= cfg.sottotitolo_home %></p>
+    </div>
+    <% if (stile === 'accanto') { %>
+      <img class="hero-foto" src="/immagini/<%= cfg.home_immagine %>" alt="">
+    <% } %>
+  <% } %>
+
+  <% if (stile === 'sotto') { %>
+    <img class="hero-larga" src="/immagini/<%= cfg.home_immagine %>" alt="">
+  <% } %>
 
   <ul class="scelta">
     <% MANSIONI.forEach(function (m) { %>
@@ -45,6 +65,12 @@
     <p style="margin-top:1.3rem"><a class="bottone chiaro" href="/tutor">Vedi tutte</a></p>
   <% } %>
 </section>
+
+<% if (cfg.home_immagine_2) { %>
+  <section>
+    <img class="hero-larga" src="/immagini/<%= cfg.home_immagine_2 %>" alt="">
+  </section>
+<% } %>
 
 <section class="due-colonne">
   <div>

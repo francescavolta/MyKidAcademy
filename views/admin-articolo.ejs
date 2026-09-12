@@ -16,10 +16,32 @@
   </div>
   <div>
     <label for="corpo">Articolo
-      <span class="aiuto">Scrivi normale. Riga vuota fra i paragrafi. Per un sottotitolo inizia la riga con <code>##</code>, per un elenco con <code>-</code>, metti <code>**parola**</code> per il grassetto, e <code>[img:3]</code> su una riga sua per infilare un'immagine (il numero lo trovi in Immagini). Con <code>[img:3|didascalia]</code> le metti una didascalia sotto.</span>
+      <span class="aiuto">Scrivi normale e usa i bottoni qui sotto. Sono scorciatoie: mettono dei segni nel testo (<code>##</code>, <code>**</code>) che diventano titoli e grassetto nella pagina vera.</span>
     </label>
+
+    <div id="barra-strumenti" class="strumenti">
+      <button type="button" data-azione="h2" title="Sottotitolo">Titolo</button>
+      <button type="button" data-azione="h3" title="Sottotitolo piccolo">Titolo piccolo</button>
+      <button type="button" data-azione="grassetto"><strong>G</strong></button>
+      <button type="button" data-azione="corsivo"><em>C</em></button>
+      <button type="button" data-azione="lista">Elenco</button>
+      <button type="button" data-azione="link">Link</button>
+      <span class="divisore"></span>
+      <select id="scegli-immagine" aria-label="Immagine da inserire">
+        <option value="">scegli un'immagine…</option>
+        <% immagini.forEach(function (i) { %><option value="<%= i.id %>"><%= i.nome %></option><% }) %>
+      </select>
+      <button type="button" data-azione="immagine">Inserisci</button>
+    </div>
+
     <textarea id="corpo" name="corpo" style="min-height:20rem"><%= a.corpo %></textarea>
   </div>
+
+  <div>
+    <label>Anteprima <span class="aiuto">Così verrà la pagina.</span></label>
+    <div id="anteprima" class="anteprima testo-lungo"></div>
+  </div>
+
   <div>
     <label for="immagine_id">Immagine di copertina
       <span class="aiuto">Si carica da <a href="/area/coordinamento/immagini">Immagini</a>.</span>
@@ -59,5 +81,7 @@
     <button class="link-testo" type="submit">Elimina questo articolo</button>
   </form>
 <% } %>
+
+<script src="/editor.js" defer></script>
 
 <%- include('partials/piede') %>

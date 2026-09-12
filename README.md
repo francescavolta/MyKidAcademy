@@ -97,7 +97,8 @@ In cima all'area coordinamento ci sono tre scorciatoie.
 
 | Gruppo | Cosa cambi |
 |---|---|
-| Testi | nome del sito, titolo e frase della home, email di contatto, riga in fondo |
+| Testi | nome del sito, email di contatto, riga in fondo |
+| Home | titolo e frase, immagine principale con tre modi di mostrarla (accanto al titolo, larga sotto, come sfondo col titolo sopra), seconda immagine in fondo |
 | Caratteri | dieci coppie di caratteri, dimensione del testo (normale o grande) |
 | Colori | sfondo pagine, sfondo barra, riquadri, bordi, titoli, pulsanti, testo, testo secondario |
 | Forme | angoli dei riquadri (morbidi, molto tondi, netti), ombre sì/no |
@@ -107,7 +108,19 @@ C'è "Ripristina tutto come all'inizio". Tutto sta nella tabella `impostazioni`:
 
 **Immagini** — carica JPG, PNG, WEBP o GIF fino a 3 MB. Stanno nel database (tabella `immagini`, colonna `bytea`) e non nel disco del servizio, che su Render si azzera a ogni deploy. Ogni immagine mostra il suo codice `[img:N]`. La pagina indica anche quanti MB stai occupando: controllalo, lo spazio del piano Postgres non è infinito.
 
-**Blog** — bozza o online. Nel testo: riga vuota fra i paragrafi, `## ` per un sottotitolo, `- ` per un elenco, `**parola**` per il grassetto, `[img:3]` su una riga da sola per un'immagine, `[img:3|didascalia]` con didascalia. Ogni articolo può avere un'immagine di copertina scelta dalla libreria.
+**Blog** — bozza o online, con barra dei bottoni (Titolo, Titolo piccolo, G, C, Elenco, Link, Inserisci immagine) e anteprima dal vivo sotto il campo di scrittura. I bottoni scrivono dei segni nel testo, che il server trasforma in HTML:
+
+| Nel campo | Nella pagina |
+|---|---|
+| `## Testo` | sottotitolo |
+| `### Testo` | sottotitolo piccolo |
+| `**testo**` | grassetto |
+| `*testo*` | corsivo |
+| `- voce` | elenco puntato |
+| `[testo](https://…)` | link |
+| `[img:3]` o `[img:3\|didascalia]` | immagine |
+
+Ogni riga è valutata da sola, quindi un titolo funziona anche con il testo attaccato sotto. Ogni articolo può avere una copertina scelta dalla libreria. La conversione sta in `corpoHtml` (`server.js`); l'anteprima nel browser ripete le stesse regole in `public/editor.js` — se cambi una regola, cambiala in entrambi.
 
 Per aggiungere una coppia di caratteri: array `FONT` in cima a `server.js`. Per aggiungere una voce modificabile: `CAMPI_ASPETTO`, accanto — i tipi sono `testo`, `area`, `colore`, `font`, `scelta`.
 

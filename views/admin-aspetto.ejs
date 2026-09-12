@@ -26,6 +26,15 @@
                   <option value="<%= k %>" <%- cfg[c.chiave] === k ? 'selected' : '' %>><%= FONT[k].nome %></option>
                 <% }) %>
               </select>
+            <% } else if (c.tipo === 'immagine') { %>
+              <select id="<%= c.chiave %>" name="<%= c.chiave %>">
+                <option value="">Nessuna</option>
+                <% immagini.forEach(function (i) { %>
+                  <option value="<%= i.id %>" <%- String(cfg[c.chiave]) === String(i.id) ? 'selected' : '' %>><%= i.nome %></option>
+                <% }) %>
+              </select>
+              <% if (cfg[c.chiave]) { %><img class="copertina copertina--piccola" src="/immagini/<%= cfg[c.chiave] %>" alt=""><% } %>
+              <% if (immagini.length === 0) { %><p class="data">Non hai ancora caricato immagini: <a href="/area/coordinamento/immagini">caricane una</a>.</p><% } %>
             <% } else if (c.tipo === 'scelta') { %>
               <select id="<%= c.chiave %>" name="<%= c.chiave %>">
                 <% Object.keys(c.opzioni).forEach(function (k) { %>
