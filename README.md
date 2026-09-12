@@ -106,7 +106,20 @@ In cima all'area coordinamento ci sono tre scorciatoie.
 
 C'è "Ripristina tutto come all'inizio". Tutto sta nella tabella `impostazioni`: cambiare aspetto non richiede un deploy.
 
-**Immagini** — carica JPG, PNG, WEBP o GIF fino a 3 MB. Stanno nel database (tabella `immagini`, colonna `bytea`) e non nel disco del servizio, che su Render si azzera a ogni deploy. Ogni immagine mostra il suo codice `[img:N]`. La pagina indica anche quanti MB stai occupando: controllalo, lo spazio del piano Postgres non è infinito.
+**Home** — la home è il titolo in cima (che si cambia da Aspetto) più una pila di blocchi riordinabili, nella tabella `sezioni`. Ogni blocco si sposta con ↑ ↓, si spegne senza cancellarlo, si modifica e si elimina. I tipi sono in `TIPI_SEZIONE` (`server.js`):
+
+| Tipo | Cosa mostra |
+|---|---|
+| Testo | titolo e testo, con immagine a fianco se scelta |
+| Immagine | una foto larga con didascalia |
+| Tessere dei servizi | i cinque riquadri delle mansioni |
+| Schede delle tutor | le prime sei approvate, col link a tutte |
+| Ultimi articoli del blog | i tre articoli pubblicati più recenti |
+| Invito con pulsante | titolo, testo e un pulsante verso una pagina |
+
+Ogni blocco è a tutta larghezza o a metà: due blocchi a metà consecutivi finiscono affiancati. I blocchi di partenza (che riproducono la home originale) vengono creati al primo avvio da `assicuraSezioni()` e solo se la tabella è vuota.
+
+**Immagini** — JPG, PNG, WEBP o GIF. Il browser rimpicciolisce il file prima di spedirlo (lato lungo 1800 px, JPEG qualità 0.82, in `public/carica-immagine.js`): una foto da 6 MB arriva a qualche centinaio di KB. Le GIF e i file sotto 900 KB passano intatti. Il limite del server è 12 MB (`MAX_IMMAGINE` in `server.js`), ed è solo una rete di sicurezza. Le immagini stanno nel database (tabella `immagini`, colonna `bytea`), non nel disco del servizio, che su Render si azzera a ogni deploy. Ogni immagine mostra il suo codice `[img:N]`. Tieni d'occhio i MB occupati indicati in cima all'elenco.
 
 **Blog** — bozza o online, con barra dei bottoni (Titolo, Titolo piccolo, G, C, Elenco, Link, Inserisci immagine) e anteprima dal vivo sotto il campo di scrittura. I bottoni scrivono dei segni nel testo, che il server trasforma in HTML:
 
@@ -119,6 +132,7 @@ C'è "Ripristina tutto come all'inizio". Tutto sta nella tabella `impostazioni`:
 | `- voce` | elenco puntato |
 | `[testo](https://…)` | link |
 | `[img:3]` o `[img:3\|didascalia]` | immagine |
+| `{verde:testo}` | testo colorato (`tema`, `rosa`, `rosso`, `arancio`, `giallo`, `verde`, `blu`, `viola`, `grigio` — tavolozza `COLORI_TESTO` in `server.js`) |
 
 Ogni riga è valutata da sola, quindi un titolo funziona anche con il testo attaccato sotto. Ogni articolo può avere una copertina scelta dalla libreria. La conversione sta in `corpoHtml` (`server.js`); l'anteprima nel browser ripete le stesse regole in `public/editor.js` — se cambi una regola, cambiala in entrambi.
 
@@ -128,6 +142,6 @@ Per aggiungere una coppia di caratteri: array `FONT` in cima a `server.js`. Per 
 
 - **Email automatiche** (avviso quando arriva una candidatura o una richiesta): un servizio tipo Resend, ~20 righe in `server.js`.
 - **Foto delle ragazze**: ora c'è il monogramma con le iniziali. Si può usare la stessa libreria immagini del blog.
-- **Rimpicciolire le immagini al caricamento**: oggi il limite è 3 MB e ridimensioni tu. Con `sharp` si fa lato server.
+- **Ridimensionamento lato server**: oggi lo fa il browser. Con `sharp` si farebbe anche quando JavaScript è spento.
 - **Recupero password**: oggi la reimposti tu dal coordinamento (o la ragazza si registra di nuovo). Con le email diventa automatico.
 - **Calendario a griglia mensile**: ora è un'agenda per giorno, più leggibile su telefono.

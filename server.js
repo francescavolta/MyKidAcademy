@@ -80,6 +80,27 @@ const FONT = {
   }
 };
 
+const COLORI_TESTO = {
+  tema: { nome: 'Colore del sito', css: 'var(--prugna)' },
+  rosa: { nome: 'Rosa', css: '#d16a92' },
+  rosso: { nome: 'Rosso', css: '#b3261e' },
+  arancio: { nome: 'Arancio', css: '#b4610f' },
+  giallo: { nome: 'Giallo scuro', css: '#96780c' },
+  verde: { nome: 'Verde', css: '#3f7a52' },
+  blu: { nome: 'Blu', css: '#2a5d9f' },
+  viola: { nome: 'Viola', css: '#6c3f96' },
+  grigio: { nome: 'Grigio', css: '#7c6670' }
+};
+
+const TIPI_SEZIONE = {
+  testo: { nome: 'Testo', spiega: 'Un titolo e del testo, con immagine a fianco se vuoi.', campi: ['titolo', 'corpo', 'immagine', 'larghezza'] },
+  immagine: { nome: 'Immagine', spiega: 'Una foto larga, con didascalia facoltativa.', campi: ['immagine', 'titolo'] },
+  mansioni: { nome: 'Tessere dei servizi', spiega: 'I cinque riquadri: ripetizioni, compiti, babysitter, cucina, pulizia.', campi: ['titolo'] },
+  tutor: { nome: 'Schede delle tutor', spiega: 'Le prime sei ragazze approvate, con il link a tutte.', campi: ['titolo'] },
+  articoli: { nome: 'Ultimi articoli del blog', spiega: 'I tre articoli pubblicati più recenti.', campi: ['titolo'] },
+  cta: { nome: 'Invito con pulsante', spiega: 'Titolo, testo e un pulsante che porta dove vuoi.', campi: ['titolo', 'corpo', 'testo_bottone', 'link_bottone', 'larghezza'] }
+};
+
 const RAGGI = { morbido: '18px', tondo: '28px', netto: '3px' };
 const SCALE = { normale: '17px', grande: '19px' };
 const IMPAGINAZIONI_BLOG = { elenco: 'Elenco semplice', schede: 'Schede con immagine', griglia: 'Griglia di riquadri' };
@@ -93,7 +114,7 @@ const CAMPI_ASPETTO = [
 
   { chiave: 'home_immagine', gruppo: 'Home', label: 'Immagine principale', tipo: 'immagine', def: '', aiuto: 'Si carica da Immagini. Lascia "Nessuna" per la home senza foto.' },
   { chiave: 'home_immagine_stile', gruppo: 'Home', label: 'Come si vede', tipo: 'scelta', opzioni: { accanto: 'Accanto al titolo', sotto: 'Larga sotto al titolo', sfondo: 'Come sfondo, col titolo sopra' }, def: 'accanto' },
-  { chiave: 'home_immagine_2', gruppo: 'Home', label: 'Seconda immagine (in fondo alla home)', tipo: 'immagine', def: '' },
+  { chiave: 'home_titolo_articoli', gruppo: 'Home', label: 'Come chiamare il link al blog nei blocchi', tipo: 'testo', def: 'Leggi tutti gli articoli' },
 
   { chiave: 'font', gruppo: 'Caratteri', label: 'Coppia di caratteri', tipo: 'font', def: 'fraunces-karla' },
   { chiave: 'scala', gruppo: 'Caratteri', label: 'Dimensione del testo', tipo: 'scelta', opzioni: { normale: 'Normale', grande: 'Grande (più leggibile)' }, def: 'normale' },
@@ -155,7 +176,10 @@ function inLinea(t) {
   return esc(t)
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|\s)\*([^*]+)\*/g, '$1<em>$2</em>')
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" rel="noopener">$1</a>');
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" rel="noopener">$1</a>')
+    .replace(/\{(\w+):([^{}]*)\}/g, (tutto, nome, dentro) =>
+      COLORI_TESTO[nome] ? '<span style="color:' + COLORI_TESTO[nome].css + '">' + dentro + '</span>' : tutto
+    );
 }
 
 // Da testo semplice a HTML. Ogni riga è valutata da sola: "## " sottotitolo,
@@ -270,7 +294,7 @@ app.use(
 );
 
 const TIPI_IMMAGINE = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const MAX_IMMAGINE = 3 * 1024 * 1024;
+const MAX_IMMAGINE = 12 * 1024 * 1024;
 
 const caricaFile = multer({
   storage: multer.memoryStorage(),
@@ -281,7 +305,7 @@ const caricaFile = multer({
 function riceviImmagine(req, res, next) {
   caricaFile(req, res, (err) => {
     if (err) {
-      req.erroreFile = err.code === 'LIMIT_FILE_SIZE' ? 'L\'immagine supera i 3 MB. Rimpiccioliscila e riprova.' : 'Caricamento non riuscito.';
+      req.erroreFile = err.code === 'LIMIT_FILE_SIZE' ? 'L\'immagine supera i 12 MB, troppo anche dopo il ridimensionamento.' : 'Caricamento non riuscito.';
     }
     next();
   });
@@ -301,6 +325,7 @@ app.use(
     res.locals.FONT = FONT;
     res.locals.scurisci = scurisci;
     res.locals.RAGGI = RAGGI;
+    res.locals.COLORI_TESTO = COLORI_TESTO;
     res.locals.SCALE = SCALE;
     res.locals.corpoHtml = corpoHtml;
     res.locals.aCapo = (t) => esc(t).replace(/\n/g, '<br>');
@@ -358,6 +383,29 @@ const SELECT_TUTOR = `
   left join mansioni m on m.user_id = u.id
   left join materie t on t.user_id = u.id
 `;
+
+async function sezioniHome({ soloAttive = true } = {}) {
+  const { rows } = await pool.query(
+    `select * from sezioni ${soloAttive ? 'where attiva = true' : ''} order by ordine asc, id asc`
+  );
+  return rows;
+}
+
+// Due blocchi "metà" di fila stanno affiancati; tutto il resto va a piena larghezza.
+function raggruppaSezioni(sezioni) {
+  const gruppi = [];
+  for (let i = 0; i < sezioni.length; i++) {
+    const s = sezioni[i];
+    const prossima = sezioni[i + 1];
+    if (s.larghezza === 'meta' && prossima && prossima.larghezza === 'meta') {
+      gruppi.push({ coppia: true, blocchi: [s, prossima] });
+      i++;
+    } else {
+      gruppi.push({ coppia: false, blocchi: [s] });
+    }
+  }
+  return gruppi;
+}
 
 async function tutorPubblici({ mansione, zona } = {}) {
   const cond = ["u.role = 'tutor'", "u.status = 'approvato'"];
@@ -436,8 +484,19 @@ function tariffaValida(v) {
 app.get(
   '/',
   wrap(async (req, res) => {
-    const tutor = (await tutorPubblici()).slice(0, 6);
-    res.render('home', { titolo: res.locals.cfg.nome_sito, tutor });
+    const sezioni = await sezioniHome();
+    const tutor = sezioni.some((s) => s.tipo === 'tutor') ? (await tutorPubblici()).slice(0, 6) : [];
+    let articoli = [];
+    if (sezioni.some((s) => s.tipo === 'articoli')) {
+      const r = await pool.query('select * from articoli where pubblicato = true order by created_at desc limit 3');
+      articoli = r.rows;
+    }
+    res.render('home', {
+      titolo: res.locals.cfg.nome_sito,
+      gruppi: raggruppaSezioni(sezioni),
+      tutor,
+      articoli
+    });
   })
 );
 
@@ -770,6 +829,108 @@ app.post(
   })
 );
 
+/* ---------- home: blocchi (solo admin) ---------- */
+
+app.get(
+  '/area/coordinamento/home',
+  soloAdmin,
+  wrap(async (req, res) => {
+    res.render('admin-home', { titolo: 'Home', sezioni: await sezioniHome({ soloAttive: false }), TIPI_SEZIONE });
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/aggiungi',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const tipo = req.body.tipo;
+    if (!TIPI_SEZIONE[tipo]) {
+      avvisa(req, 'Scegli che tipo di blocco aggiungere.', 'errore');
+      return res.redirect('/area/coordinamento/home');
+    }
+    const { rows: max } = await pool.query('select coalesce(max(ordine), 0) as m from sezioni');
+    const { rows } = await pool.query(
+      `insert into sezioni (tipo, titolo, ordine, attiva) values ($1, $2, $3, false) returning id`,
+      [tipo, TIPI_SEZIONE[tipo].nome === 'Testo' ? 'Nuovo blocco' : '', Number(max[0].m) + 1]
+    );
+    avvisa(req, 'Blocco aggiunto in fondo, per ora spento: compilalo e accendilo.');
+    res.redirect(`/area/coordinamento/home/${rows[0].id}`);
+  })
+);
+
+app.get(
+  '/area/coordinamento/home/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from sezioni where id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).render('errore', { titolo: 'Non trovato', messaggio: 'Questo blocco non esiste.' });
+    const { rows: immagini } = await pool.query('select id, nome from immagini order by created_at desc');
+    res.render('admin-sezione', { titolo: 'Blocco della home', s: rows[0], immagini, TIPI_SEZIONE });
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query(
+      `update sezioni set titolo=$1, corpo=$2, immagine_id=$3, testo_bottone=$4, link_bottone=$5,
+                          larghezza=$6, attiva=$7
+       where id=$8`,
+      [
+        String(req.body.titolo || '').trim().slice(0, 160),
+        String(req.body.corpo || '').slice(0, 4000),
+        req.body.immagine_id || null,
+        String(req.body.testo_bottone || '').trim().slice(0, 60),
+        String(req.body.link_bottone || '').trim().slice(0, 200),
+        req.body.larghezza === 'meta' ? 'meta' : 'piena',
+        req.body.attiva === 'si',
+        req.params.id
+      ]
+    );
+    avvisa(req, req.body.attiva === 'si' ? 'Blocco salvato e visibile in home.' : 'Blocco salvato, per ora spento.');
+    res.redirect('/area/coordinamento/home');
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/:id/sposta',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const tutte = await sezioniHome({ soloAttive: false });
+    const i = tutte.findIndex((x) => String(x.id) === String(req.params.id));
+    const j = req.body.verso === 'su' ? i - 1 : i + 1;
+    if (i === -1 || j < 0 || j >= tutte.length) return res.redirect('/area/coordinamento/home');
+    // Riscrivo tutti gli ordini: così restano sempre consecutivi anche dopo le cancellazioni.
+    const nuovo = tutte.slice();
+    nuovo[i] = tutte[j];
+    nuovo[j] = tutte[i];
+    for (let k = 0; k < nuovo.length; k++) {
+      await pool.query('update sezioni set ordine = $1 where id = $2', [k + 1, nuovo[k].id]);
+    }
+    res.redirect('/area/coordinamento/home');
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/:id/accendi',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('update sezioni set attiva = not attiva where id = $1', [req.params.id]);
+    res.redirect('/area/coordinamento/home');
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('delete from sezioni where id = $1', [req.params.id]);
+    avvisa(req, 'Blocco eliminato.');
+    res.redirect('/area/coordinamento/home');
+  })
+);
+
 /* ---------- immagini ---------- */
 
 app.get(
@@ -1022,9 +1183,44 @@ async function assicuraAdmin() {
   console.log(`Account coordinamento pronto: ${email}`);
 }
 
+async function assicuraSezioni() {
+  const { rows } = await pool.query('select count(*)::int as n from sezioni');
+  if (rows[0].n > 0) return;
+  const partenza = [
+    { tipo: 'mansioni', titolo: '', corpo: '', larghezza: 'piena' },
+    { tipo: 'tutor', titolo: 'Chi collabora con noi', corpo: '', larghezza: 'piena' },
+    {
+      tipo: 'testo',
+      titolo: 'Come funziona',
+      corpo:
+        'Scegli la persona e il tipo di aiuto, lasci un contatto e ti richiamiamo per fissare i primi appuntamenti. Il calendario di ogni ragazza è aggiornato da noi, così vedi solo le fasce davvero libere.\n\nPer qualsiasi cambio di orario o sostituzione parli sempre con noi, non con dieci persone diverse.',
+      larghezza: 'meta'
+    },
+    {
+      tipo: 'cta',
+      titolo: 'Vuoi lavorare con noi?',
+      corpo:
+        'Cerchiamo ragazze precise e affidabili per ripetizioni, aiuto compiti, babysitting e aiuto in casa. Ti crei la tua pagina, indichi materie, tariffa e disponibilità: noi ti portiamo le famiglie.',
+      larghezza: 'meta',
+      bottone: 'Manda la candidatura',
+      link: '/lavora-con-noi'
+    }
+  ];
+  for (let i = 0; i < partenza.length; i++) {
+    const p = partenza[i];
+    await pool.query(
+      `insert into sezioni (tipo, titolo, corpo, larghezza, testo_bottone, link_bottone, ordine, attiva)
+       values ($1,$2,$3,$4,$5,$6,$7,true)`,
+      [p.tipo, p.titolo, p.corpo, p.larghezza, p.bottone || '', p.link || '', i + 1]
+    );
+  }
+  console.log('Blocchi della home creati.');
+}
+
 (async () => {
   await initDb();
   await assicuraAdmin();
+  await assicuraSezioni();
   app.listen(PORT, () => console.log(`MyKidAcademy in ascolto sulla porta ${PORT}`));
 })().catch((e) => {
   console.error('Avvio fallito:', e);

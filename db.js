@@ -80,6 +80,20 @@ create table if not exists articoli (
 create index if not exists articoli_pubblicati on articoli (pubblicato, created_at desc);
 alter table articoli add column if not exists immagine_id integer references immagini(id) on delete set null;
 
+create table if not exists sezioni (
+  id            serial primary key,
+  tipo          text not null,
+  titolo        text not null default '',
+  corpo         text not null default '',
+  immagine_id   integer references immagini(id) on delete set null,
+  testo_bottone text not null default '',
+  link_bottone  text not null default '',
+  larghezza     text not null default 'piena',
+  attiva        boolean not null default true,
+  ordine        integer not null default 0
+);
+create index if not exists sezioni_ordine on sezioni (ordine);
+
 create table if not exists richieste (
   id                serial primary key,
   tutor_id          integer references users(id) on delete set null,

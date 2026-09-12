@@ -475,3 +475,32 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
   .hero--accanto { grid-template-columns: 1fr; gap: 1.5rem; }
   .hero-foto { max-height: 260px; }
 }
+
+/* ---------- blocchi della home ---------- */
+
+.blocco-con-foto {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 2rem;
+  align-items: center;
+}
+.blocco-con-foto img { width: 100%; height: auto; max-height: 320px; object-fit: cover; border-radius: var(--raggio); display: block; }
+.blocco-con-foto > div > :first-child { margin-top: 0; }
+
+.blocchi { list-style: none; padding: 0; margin: 1.5rem 0 0; display: grid; gap: 0.8rem; }
+.blocchi li {
+  border: 1px solid var(--velo);
+  border-radius: var(--raggio);
+  background: #fff;
+  padding: 0.9rem 1.1rem;
+}
+.blocchi--spento { background: transparent; border-style: dashed; }
+.blocchi-testa { display: flex; flex-wrap: wrap; gap: 0.7rem 1rem; align-items: flex-start; }
+.blocchi-testa h3 { margin: 0 0 0.15rem; }
+.blocchi-testa .riga-azioni { margin-left: auto; }
+.blocchi .testo { margin: 0.6rem 0 0; }
+.blocchi button[disabled] { opacity: 0.4; cursor: default; }
+
+@media (max-width: 760px) {
+  .blocco-con-foto { grid-template-columns: 1fr; }
+}

@@ -2,9 +2,9 @@
 
 <p style="margin-top:1.5rem"><a href="/area/coordinamento">← Coordinamento</a></p>
 <h1>Immagini</h1>
-<p class="guida">Le immagini stanno nel database, quindi restano anche dopo un aggiornamento del sito. Massimo 3 MB ciascuna: se una foto del telefono è più grande, rimpiccioliscila prima.</p>
+<p class="guida">Carica le foto come sono, anche quelle grandi del telefono: le rimpicciolisco io nel browser prima di spedirle (lato lungo 1800 pixel), così restano leggere nel database. Le GIF animate le lascio intatte.</p>
 
-<form class="modulo" method="post" action="/area/coordinamento/immagini" enctype="multipart/form-data">
+<form class="modulo" id="form-immagine" method="post" action="/area/coordinamento/immagini" enctype="multipart/form-data">
   <div>
     <label for="file">Scegli l'immagine <span class="aiuto">JPG, PNG, WEBP o GIF.</span></label>
     <input id="file" name="file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required>
@@ -13,8 +13,13 @@
     <label for="nome">Come la chiami <span class="aiuto">Serve solo a te per ritrovarla.</span></label>
     <input id="nome" name="nome" type="text" maxlength="120" placeholder="bambini che studiano">
   </div>
-  <div><button class="bottone" type="submit">Carica</button></div>
+  <div class="riga-azioni">
+    <button class="bottone" type="submit">Carica</button>
+    <span id="stato-caricamento" class="data" aria-live="polite"></span>
+  </div>
 </form>
+
+<script src="/carica-immagine.js" defer></script>
 
 <% if (immagini.length === 0) { %>
   <div class="vuoto" style="margin-top:1.5rem"><p>Nessuna immagine caricata. La prima può essere la copertina del primo articolo.</p></div>

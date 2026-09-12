@@ -1,0 +1,88 @@
+<% if (s.tipo === 'mansioni') { %>
+  <% if (s.titolo) { %><h2><%= s.titolo %></h2><% } %>
+  <ul class="scelta">
+    <% MANSIONI.forEach(function (m) { %>
+      <li>
+        <a href="/tutor?mansione=<%= m.id %>">
+          <strong><%= m.label %></strong>
+          <small><%= m.desc %></small>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+
+<% } else if (s.tipo === 'tutor') { %>
+  <% if (s.titolo) { %><h2><%= s.titolo %></h2><% } %>
+  <% if (tutor.length === 0) { %>
+    <div class="vuoto"><p>Le prime schede stanno arrivando. Se vuoi essere tra le prime, <a href="/lavora-con-noi">candidati qui</a>.</p></div>
+  <% } else { %>
+    <ul class="griglia">
+      <% tutor.forEach(function (t) { %>
+        <li class="scheda">
+          <div class="scheda-testa">
+            <div class="monogramma" aria-hidden="true"><%= iniziali(t.nome) %></div>
+            <div>
+              <h3><a href="/tutor/<%= t.id %>"><%= t.nome %></a></h3>
+              <% if (t.zona) { %><div class="zona"><%= t.zona %></div><% } %>
+            </div>
+          </div>
+          <% if (t.mansioni.length) { %>
+            <ul class="etichette">
+              <% t.mansioni.forEach(function (m) { %><li><%= labelMansione(m) %></li><% }) %>
+            </ul>
+          <% } %>
+          <% if (t.tariffa !== null) { %><div class="tariffa"><%= Number(t.tariffa) %> € l'ora</div><% } %>
+        </li>
+      <% }) %>
+    </ul>
+    <p style="margin-top:1.3rem"><a class="bottone chiaro" href="/tutor">Vedi tutte</a></p>
+  <% } %>
+
+<% } else if (s.tipo === 'articoli') { %>
+  <% if (s.titolo) { %><h2><%= s.titolo %></h2><% } %>
+  <% if (articoli.length === 0) { %>
+    <div class="vuoto"><p>Nessun articolo pubblicato per ora.</p></div>
+  <% } else { %>
+    <ul class="articoli articoli--griglia">
+      <% articoli.forEach(function (a) { %>
+        <li>
+          <% if (a.immagine_id) { %>
+            <a href="/blog/<%= a.slug %>"><img src="/immagini/<%= a.immagine_id %>" alt="" loading="lazy"></a>
+          <% } %>
+          <h3><a href="/blog/<%= a.slug %>"><%= a.titolo %></a></h3>
+          <% if (a.sommario) { %><p class="testo"><%= a.sommario %></p><% } %>
+        </li>
+      <% }) %>
+    </ul>
+    <p style="margin-top:1.2rem"><a class="bottone chiaro" href="/blog"><%= cfg.home_titolo_articoli %></a></p>
+  <% } %>
+
+<% } else if (s.tipo === 'immagine') { %>
+  <% if (s.immagine_id) { %>
+    <figure style="margin-top:0">
+      <img src="/immagini/<%= s.immagine_id %>" alt="<%= s.titolo %>" loading="lazy">
+      <% if (s.titolo) { %><figcaption><%= s.titolo %></figcaption><% } %>
+    </figure>
+  <% } %>
+
+<% } else if (s.tipo === 'cta') { %>
+  <% if (s.titolo) { %><h2><%= s.titolo %></h2><% } %>
+  <%- corpoHtml(s.corpo) %>
+  <% if (s.testo_bottone && s.link_bottone) { %>
+    <p><a class="bottone" href="<%= s.link_bottone %>"><%= s.testo_bottone %></a></p>
+  <% } %>
+
+<% } else { %>
+  <% if (s.immagine_id) { %>
+    <div class="blocco-con-foto">
+      <div>
+        <% if (s.titolo) { %><h2><%= s.titolo %></h2><% } %>
+        <%- corpoHtml(s.corpo) %>
+      </div>
+      <img src="/immagini/<%= s.immagine_id %>" alt="" loading="lazy">
+    </div>
+  <% } else { %>
+    <% if (s.titolo) { %><h2><%= s.titolo %></h2><% } %>
+    <%- corpoHtml(s.corpo) %>
+  <% } %>
+<% } %>

@@ -1,0 +1,85 @@
+<%- include('partials/testa') %>
+
+<% var campi = TIPI_SEZIONE[s.tipo].campi; %>
+
+<p style="margin-top:1.5rem"><a href="/area/coordinamento/home">← Blocchi della home</a></p>
+<h1><%= TIPI_SEZIONE[s.tipo].nome %></h1>
+<p class="guida"><%= TIPI_SEZIONE[s.tipo].spiega %></p>
+
+<form class="modulo larga" method="post" action="/area/coordinamento/home/<%= s.id %>" style="max-width:42rem">
+  <% if (campi.includes('titolo')) { %>
+    <div>
+      <label for="titolo"><%= s.tipo === 'immagine' ? 'Didascalia' : 'Titolo del blocco' %>
+        <span class="aiuto">Lascia vuoto per non mostrarlo.</span>
+      </label>
+      <input id="titolo" name="titolo" type="text" maxlength="160" value="<%= s.titolo %>">
+    </div>
+  <% } %>
+
+  <% if (campi.includes('corpo')) { %>
+    <div>
+      <label for="corpo">Testo
+        <span class="aiuto">Riga vuota fra i paragrafi. Valgono gli stessi segni del blog: <code>## </code> sottotitolo, <code>- </code> elenco, <code>**grassetto**</code>, <code>{verde:colorato}</code>, <code>[img:3]</code>.</span>
+      </label>
+      <textarea id="corpo" name="corpo" style="min-height:10rem"><%= s.corpo %></textarea>
+    </div>
+  <% } %>
+
+  <% if (campi.includes('immagine')) { %>
+    <div>
+      <label for="immagine_id">Immagine
+        <span class="aiuto">Si carica da <a href="/area/coordinamento/immagini">Immagini</a>.<%= s.tipo === 'testo' ? ' Se la metti, va a fianco del testo.' : '' %></span>
+      </label>
+      <select id="immagine_id" name="immagine_id">
+        <option value="">Nessuna</option>
+        <% immagini.forEach(function (i) { %>
+          <option value="<%= i.id %>" <%- String(s.immagine_id) === String(i.id) ? 'selected' : '' %>><%= i.nome %></option>
+        <% }) %>
+      </select>
+      <% if (s.immagine_id) { %><img class="copertina copertina--piccola" src="/immagini/<%= s.immagine_id %>" alt=""><% } %>
+    </div>
+  <% } %>
+
+  <% if (campi.includes('testo_bottone')) { %>
+    <div class="doppia">
+      <div>
+        <label for="testo_bottone">Scritta sul pulsante</label>
+        <input id="testo_bottone" name="testo_bottone" type="text" maxlength="60" value="<%= s.testo_bottone %>" placeholder="Manda la candidatura">
+      </div>
+      <div>
+        <label for="link_bottone">Dove porta
+          <span class="aiuto">Una pagina del sito (<code>/lavora-con-noi</code>) o un indirizzo intero.</span>
+        </label>
+        <input id="link_bottone" name="link_bottone" type="text" maxlength="200" value="<%= s.link_bottone %>">
+      </div>
+    </div>
+  <% } %>
+
+  <% if (campi.includes('larghezza')) { %>
+    <fieldset>
+      <legend>Larghezza</legend>
+      <div class="caselle">
+        <label><input type="radio" name="larghezza" value="piena" <%- s.larghezza === 'meta' ? '' : 'checked' %>> Tutta la larghezza</label>
+        <label><input type="radio" name="larghezza" value="meta" <%- s.larghezza === 'meta' ? 'checked' : '' %>> Metà, per stare a fianco del blocco seguente</label>
+      </div>
+      <p class="data" style="margin:.6rem 0 0">Due blocchi "metà" uno dopo l'altro si mettono affiancati. Se resta spaiato, si allarga da solo.</p>
+    </fieldset>
+  <% } %>
+
+  <fieldset>
+    <legend>Visibilità</legend>
+    <div class="caselle">
+      <label><input type="radio" name="attiva" value="si" <%- s.attiva ? 'checked' : '' %>> Visibile in home</label>
+      <label><input type="radio" name="attiva" value="no" <%- s.attiva ? '' : 'checked' %>> Spento</label>
+    </div>
+  </fieldset>
+
+  <div><button class="bottone" type="submit">Salva il blocco</button></div>
+</form>
+
+<form method="post" action="/area/coordinamento/home/<%= s.id %>/elimina" style="margin-top:2.5rem"
+      onsubmit="return confirm('Eliminare questo blocco dalla home?')">
+  <button class="link-testo" type="submit">Elimina questo blocco</button>
+</form>
+
+<%- include('partials/piede') %>

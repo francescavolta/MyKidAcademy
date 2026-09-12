@@ -6,6 +6,11 @@
   const anteprima = document.getElementById('anteprima');
   if (!area || !barra) return;
 
+  const COLORI = {
+    tema: 'var(--prugna)', rosa: '#d16a92', rosso: '#b3261e', arancio: '#b4610f',
+    giallo: '#96780c', verde: '#3f7a52', blu: '#2a5d9f', viola: '#6c3f96', grigio: '#7c6670'
+  };
+
   function applica(azione) {
     const inizio = area.selectionStart;
     const fine = area.selectionEnd;
@@ -42,6 +47,18 @@
       return;
     }
 
+    if (azione === 'colore') {
+      const scelta = document.getElementById('scegli-colore');
+      const nome = scelta ? scelta.value : '';
+      if (!nome) {
+        alert('Scegli prima un colore dal menù accanto al bottone.');
+        return;
+      }
+      area.setRangeText('{' + nome + ':' + (scelto || 'testo') + '}', inizio, fine, scelto ? 'end' : 'select');
+      finisci();
+      return;
+    }
+
     if (azione === 'link') {
       const url = prompt('Indirizzo del link (con https://)', 'https://');
       if (!url) return;
@@ -74,7 +91,10 @@
       .replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/(^|\s)\*([^*]+)\*/g, '$1<em>$2</em>')
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" rel="noopener">$1</a>');
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" rel="noopener">$1</a>')
+      .replace(/\{(\w+):([^{}]*)\}/g, function (tutto, nome, dentro) {
+        return COLORI[nome] ? '<span style="color:' + COLORI[nome] + '">' + dentro + '</span>' : tutto;
+      });
   }
 
   function aHtml(testo) {

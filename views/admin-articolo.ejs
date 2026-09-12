@@ -27,6 +27,11 @@
       <button type="button" data-azione="lista">Elenco</button>
       <button type="button" data-azione="link">Link</button>
       <span class="divisore"></span>
+      <select id="scegli-colore" aria-label="Colore del testo">
+        <% Object.keys(COLORI_TESTO).forEach(function (k) { %><option value="<%= k %>"><%= COLORI_TESTO[k].nome %></option><% }) %>
+      </select>
+      <button type="button" data-azione="colore">Colora</button>
+      <span class="divisore"></span>
       <select id="scegli-immagine" aria-label="Immagine da inserire">
         <option value="">scegli un'immagine…</option>
         <% immagini.forEach(function (i) { %><option value="<%= i.id %>"><%= i.nome %></option><% }) %>
