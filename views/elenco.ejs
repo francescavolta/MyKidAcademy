@@ -1,0 +1,56 @@
+<%- include('partials/testa') %>
+
+<h1><%= mansione ? labelMansione(mansione) : 'Le nostre tutor' %></h1>
+<p class="guida"><%= mansione ? 'Chi è disponibile per questo tipo di aiuto.' : 'Tutte le ragazze approvate dal coordinamento.' %></p>
+
+<form class="modulo larga" method="get" action="/tutor" style="margin-top:1.5rem">
+  <div class="doppia">
+    <div>
+      <label for="mansione">Tipo di aiuto</label>
+      <select id="mansione" name="mansione">
+        <option value="">Tutti</option>
+        <% MANSIONI.forEach(function (m) { %>
+          <option value="<%= m.id %>" <%- mansione === m.id ? 'selected' : '' %>><%= m.label %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div>
+      <label for="zona">Zona</label>
+      <input id="zona" name="zona" type="text" value="<%= zona %>" placeholder="Bologna">
+    </div>
+    <div style="align-self:end">
+      <button class="bottone" type="submit">Filtra</button>
+    </div>
+  </div>
+</form>
+
+<% if (tutor.length === 0) { %>
+  <div class="vuoto" style="margin-top:1.5rem">
+    <p>Nessuna ragazza corrisponde a questa ricerca. Prova a togliere la zona o a cambiare tipo di aiuto.</p>
+  </div>
+<% } else { %>
+  <ul class="griglia">
+    <% tutor.forEach(function (t) { %>
+      <li class="scheda">
+        <div class="scheda-testa">
+          <div class="monogramma" aria-hidden="true"><%= iniziali(t.nome) %></div>
+          <div>
+            <h3><a href="/tutor/<%= t.id %><%= mansione ? '?mansione=' + mansione : '' %>"><%= t.nome %></a></h3>
+            <% if (t.zona) { %><div class="zona"><%= t.zona %></div><% } %>
+          </div>
+        </div>
+        <% if (t.bio) { %><p class="testo"><%= t.bio.length > 130 ? t.bio.slice(0, 130) + '…' : t.bio %></p><% } %>
+        <% if (t.mansioni.length) { %>
+          <ul class="etichette">
+            <% t.mansioni.forEach(function (m) { %><li><%= labelMansione(m) %></li><% }) %>
+          </ul>
+        <% } %>
+        <% if (t.materie.length) { %><div class="zona">Materie: <%= t.materie.join(', ') %></div><% } %>
+        <% if (t.tariffa !== null) { %><div class="tariffa"><%= Number(t.tariffa) %> € l'ora</div><% } %>
+        <div><a class="bottone piccolo chiaro" href="/tutor/<%= t.id %>">Vedi la pagina</a></div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<%- include('partials/piede') %>

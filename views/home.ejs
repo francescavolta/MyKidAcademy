@@ -1,0 +1,62 @@
+<%- include('partials/testa') %>
+
+<section class="hero">
+  <h1>Una persona di fiducia<br>per quello che serve a casa.</h1>
+  <p class="guida">Selezioniamo noi le ragazze che collaborano con noi, una per una. Tu scegli di cosa hai bisogno, guardi chi è libera e ci pensiamo noi a organizzare.</p>
+
+  <ul class="scelta">
+    <% MANSIONI.forEach(function (m) { %>
+      <li>
+        <a href="/tutor?mansione=<%= m.id %>">
+          <strong><%= m.label %></strong>
+          <small><%= m.desc %></small>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+
+<section>
+  <h2>Chi collabora con noi</h2>
+  <% if (tutor.length === 0) { %>
+    <div class="vuoto">
+      <p>Le prime schede stanno arrivando. Se vuoi essere tra le prime, <a href="/lavora-con-noi">candidati qui</a>.</p>
+    </div>
+  <% } else { %>
+    <ul class="griglia">
+      <% tutor.forEach(function (t) { %>
+        <li class="scheda">
+          <div class="scheda-testa">
+            <div class="monogramma" aria-hidden="true"><%= iniziali(t.nome) %></div>
+            <div>
+              <h3><a href="/tutor/<%= t.id %>"><%= t.nome %></a></h3>
+              <% if (t.zona) { %><div class="zona"><%= t.zona %></div><% } %>
+            </div>
+          </div>
+          <% if (t.mansioni.length) { %>
+            <ul class="etichette">
+              <% t.mansioni.forEach(function (m) { %><li><%= labelMansione(m) %></li><% }) %>
+            </ul>
+          <% } %>
+          <% if (t.tariffa !== null) { %><div class="tariffa"><%= Number(t.tariffa) %> € l'ora</div><% } %>
+        </li>
+      <% }) %>
+    </ul>
+    <p style="margin-top:1.3rem"><a class="bottone chiaro" href="/tutor">Vedi tutte</a></p>
+  <% } %>
+</section>
+
+<section class="due-colonne">
+  <div>
+    <h2>Come funziona</h2>
+    <p>Scegli la persona e il tipo di aiuto, lasci un contatto e ti richiamiamo per fissare i primi appuntamenti. Il calendario di ogni ragazza è aggiornato da noi, così vedi solo le fasce davvero libere.</p>
+    <p>Per qualsiasi cambio di orario o sostituzione parli sempre con noi, non con dieci persone diverse.</p>
+  </div>
+  <div>
+    <h2>Vuoi lavorare con noi?</h2>
+    <p>Cerchiamo ragazze precise e affidabili per ripetizioni, aiuto compiti, babysitting e aiuto in casa. Ti crei la tua pagina, indichi materie, tariffa e disponibilità: noi ti portiamo le famiglie.</p>
+    <p><a class="bottone" href="/lavora-con-noi">Manda la candidatura</a></p>
+  </div>
+</section>
+
+<%- include('partials/piede') %>

@@ -1,0 +1,90 @@
+<%- include('partials/testa') %>
+
+<h1 style="margin-top:2rem">La mia pagina</h1>
+<p class="guida">
+  Stato:
+  <span class="stato stato--<%= t.status %>">
+    <%= t.status === 'approvato' ? 'attiva e visibile ai genitori' : (t.status === 'in_attesa' ? 'in attesa di approvazione' : t.status) %>
+  </span>
+  <% if (t.status === 'approvato') { %> · <a href="/tutor/<%= t.id %>">guarda come la vedono i genitori</a><% } %>
+</p>
+
+<% if (t.status === 'in_attesa') { %>
+  <p class="avviso">La scheda è completa ma non ancora pubblica. Il coordinamento la controlla e ti avvisa.</p>
+<% } %>
+
+<div class="due-colonne" style="margin-top:2rem">
+  <div>
+    <h2>I miei dati</h2>
+    <form class="modulo larga" method="post" action="/area/tutor/profilo">
+      <%- include('partials/campi-tutor', { t: t }) %>
+      <div><button class="bottone" type="submit">Salva le modifiche</button></div>
+    </form>
+  </div>
+
+  <div>
+    <h2>Il mio calendario</h2>
+    <p class="testo">Aggiungi le fasce in cui sei libera. Il coordinamento può modificarle o segnarle come occupate.</p>
+    <form class="modulo" method="post" action="/area/tutor/disponibilita">
+      <div class="doppia">
+        <div>
+          <label for="data">Giorno</label>
+          <input id="data" name="data" type="date" required>
+        </div>
+        <div>
+          <label for="ora_inizio">Dalle</label>
+          <input id="ora_inizio" name="ora_inizio" type="time" required>
+        </div>
+        <div>
+          <label for="ora_fine">Alle</label>
+          <input id="ora_fine" name="ora_fine" type="time" required>
+        </div>
+      </div>
+      <div>
+        <label for="nota">Nota <span class="aiuto">Facoltativa, es. "solo online".</span></label>
+        <input id="nota" name="nota" type="text" maxlength="140">
+      </div>
+      <div><button class="bottone" type="submit">Aggiungi la fascia</button></div>
+    </form>
+
+    <% if (giorni.length === 0) { %>
+      <div class="vuoto" style="margin-top:1.2rem"><p>Il calendario è vuoto. Aggiungi la prima fascia qui sopra.</p></div>
+    <% } else { %>
+      <ul class="agenda">
+        <% giorni.forEach(function (g) { %>
+          <li class="giorno">
+            <h3><%= dataIt(g.data) %></h3>
+            <% g.slots.forEach(function (s) { %>
+              <div class="fascia <%= s.stato === 'occupato' ? 'occupata' : '' %>">
+                <span class="orario"><%= ora(s.ora_inizio) %> – <%= ora(s.ora_fine) %></span>
+                <span class="nota">
+                  <%= s.stato === 'occupato' ? 'occupato' : 'libero' %><% if (s.nota) { %> · <%= s.nota %><% } %><% if (s.creata_da === 'coordinamento') { %> · inserita dal coordinamento<% } %>
+                </span>
+                <form method="post" action="/area/tutor/disponibilita/<%= s.id %>/elimina">
+                  <button class="bottone piccolo chiaro" type="submit">Rimuovi</button>
+                </form>
+              </div>
+            <% }) %>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+
+    <h2 style="margin-top:2.5rem">Richieste che ti riguardano</h2>
+    <% if (richieste.length === 0) { %>
+      <div class="vuoto"><p>Ancora nessuna richiesta. Le gestisce il coordinamento e ti avvisa.</p></div>
+    <% } else { %>
+      <ul class="agenda">
+        <% richieste.forEach(function (r) { %>
+          <li class="giorno">
+            <h3><%= labelMansione(r.mansione) %> · <%= r.stato.replace('_', ' ') %></h3>
+            <p class="testo" style="margin:0"><%= r.genitore_nome %><% if (r.quando) { %> — <%= r.quando %><% } %></p>
+            <% if (r.messaggio) { %><p class="testo" style="margin:.3rem 0 0"><%= r.messaggio %></p><% } %>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+</div>
+
+<%- include('partials/piede') %>

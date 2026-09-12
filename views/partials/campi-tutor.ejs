@@ -1,0 +1,45 @@
+<div class="doppia">
+  <div>
+    <label for="nome">Nome e cognome</label>
+    <input id="nome" name="nome" type="text" required value="<%= t.nome %>">
+  </div>
+  <div>
+    <label for="telefono">Telefono</label>
+    <input id="telefono" name="telefono" type="tel" value="<%= t.telefono %>">
+  </div>
+</div>
+<div class="doppia">
+  <div>
+    <label for="zona">Zona in cui lavori
+      <span class="aiuto">Quartiere o comune, così i genitori sanno se sei vicina.</span>
+    </label>
+    <input id="zona" name="zona" type="text" value="<%= t.zona %>" placeholder="Bologna, zona Saragozza">
+  </div>
+  <div>
+    <label for="tariffa">Tariffa oraria (€)</label>
+    <input id="tariffa" name="tariffa" type="number" min="0" max="999" step="0.5" value="<%= t.tariffa !== null ? Number(t.tariffa) : '' %>">
+  </div>
+</div>
+<fieldset>
+  <legend>Cosa puoi fare</legend>
+  <div class="caselle">
+    <% MANSIONI.forEach(function (m) { %>
+      <label>
+        <input type="checkbox" name="mansioni" value="<%= m.id %>" <%= t.mansioni.includes(m.id) ? 'checked' : '' %>>
+        <%= m.label %>
+      </label>
+    <% }) %>
+  </div>
+</fieldset>
+<div>
+  <label for="materie">Materie
+    <span class="aiuto">Separale con una virgola. Lascia vuoto se non fai ripetizioni.</span>
+  </label>
+  <input id="materie" name="materie" type="text" value="<%= t.materie.join(', ') %>" placeholder="Matematica, Inglese, Latino">
+</div>
+<div>
+  <label for="bio">Presentazione
+    <span class="aiuto">Due o tre frasi: cosa studi, con che età lavori meglio, come imposti le lezioni.</span>
+  </label>
+  <textarea id="bio" name="bio"><%= t.bio %></textarea>
+</div>

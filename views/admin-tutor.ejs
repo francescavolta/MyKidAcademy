@@ -1,0 +1,111 @@
+<%- include('partials/testa') %>
+
+<p style="margin-top:1.5rem"><a href="/area/coordinamento">← Coordinamento</a></p>
+<h1><%= t.nome %></h1>
+<p class="guida">
+  <%= t.email %> · stato <span class="stato stato--<%= t.status %>"><%= t.status.replace('_', ' ') %></span>
+</p>
+
+<div class="riga-azioni" style="margin-bottom:2rem">
+  <% STATI_UTENTE.filter(function (s) { return s !== t.status; }).forEach(function (s) { %>
+    <form method="post" action="/area/coordinamento/tutor/<%= t.id %>/stato">
+      <input type="hidden" name="stato" value="<%= s %>">
+      <input type="hidden" name="ritorno" value="/area/coordinamento/tutor/<%= t.id %>">
+      <button class="bottone piccolo <%= s === 'approvato' ? '' : 'chiaro' %>" type="submit">
+        <%= s === 'approvato' ? 'Approva' : (s === 'in_attesa' ? 'Rimetti in attesa' : (s === 'rifiutato' ? 'Rifiuta' : 'Sospendi')) %>
+      </button>
+    </form>
+  <% }) %>
+</div>
+
+<div class="due-colonne">
+  <div>
+    <h2>Scheda</h2>
+    <form class="modulo larga" method="post" action="/area/coordinamento/tutor/<%= t.id %>">
+      <%- include('partials/campi-tutor', { t: t }) %>
+      <div>
+        <label for="nota_interna">Nota interna
+          <span class="aiuto">Solo per te: non appare da nessuna parte sul sito.</span>
+        </label>
+        <textarea id="nota_interna" name="nota_interna" style="min-height:4.5rem"><%= t.nota_interna %></textarea>
+      </div>
+      <div><button class="bottone" type="submit">Salva la scheda</button></div>
+    </form>
+  </div>
+
+  <div>
+    <h2>Calendario</h2>
+    <form class="modulo" method="post" action="/area/coordinamento/tutor/<%= t.id %>/disponibilita">
+      <div class="doppia">
+        <div>
+          <label for="data">Giorno</label>
+          <input id="data" name="data" type="date" required>
+        </div>
+        <div>
+          <label for="ora_inizio">Dalle</label>
+          <input id="ora_inizio" name="ora_inizio" type="time" required>
+        </div>
+        <div>
+          <label for="ora_fine">Alle</label>
+          <input id="ora_fine" name="ora_fine" type="time" required>
+        </div>
+      </div>
+      <div class="doppia">
+        <div>
+          <label for="stato">Come segnarla</label>
+          <select id="stato" name="stato">
+            <option value="libero">Libera (visibile ai genitori)</option>
+            <option value="occupato">Occupata</option>
+          </select>
+        </div>
+        <div>
+          <label for="nota">Nota</label>
+          <input id="nota" name="nota" type="text" maxlength="140" placeholder="Famiglia Rossi, compiti">
+        </div>
+      </div>
+      <div><button class="bottone" type="submit">Aggiungi al calendario</button></div>
+    </form>
+
+    <% if (giorni.length === 0) { %>
+      <div class="vuoto" style="margin-top:1.2rem"><p>Calendario vuoto. Puoi inserire tu le fasce, oppure le aggiunge lei dalla sua pagina.</p></div>
+    <% } else { %>
+      <ul class="agenda">
+        <% giorni.forEach(function (g) { %>
+          <li class="giorno">
+            <h3><%= dataIt(g.data) %></h3>
+            <% g.slots.forEach(function (s) { %>
+              <div class="fascia <%= s.stato === 'occupato' ? 'occupata' : '' %>">
+                <span class="orario"><%= ora(s.ora_inizio) %> – <%= ora(s.ora_fine) %></span>
+                <span class="nota"><%= s.nota || (s.stato === 'occupato' ? 'occupato' : 'libero') %></span>
+                <form method="post" action="/area/coordinamento/disponibilita/<%= s.id %>/stato">
+                  <button class="bottone piccolo chiaro" type="submit"><%= s.stato === 'libero' ? 'Segna occupata' : 'Segna libera' %></button>
+                </form>
+                <form method="post" action="/area/coordinamento/disponibilita/<%= s.id %>/elimina">
+                  <button class="bottone piccolo chiaro" type="submit">Elimina</button>
+                </form>
+              </div>
+            <% }) %>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+
+    <h2 style="margin-top:2.5rem">Richieste per <%= t.nome.split(' ')[0] %></h2>
+    <% if (richieste.length === 0) { %>
+      <div class="vuoto"><p>Nessuna richiesta arrivata per lei.</p></div>
+    <% } else { %>
+      <ul class="agenda">
+        <% richieste.forEach(function (r) { %>
+          <li class="giorno">
+            <h3><%= labelMansione(r.mansione) %> · <%= r.stato.replace('_', ' ') %></h3>
+            <p class="testo" style="margin:0"><%= r.genitore_nome %> · <%= r.genitore_email %><% if (r.genitore_telefono) { %> · <%= r.genitore_telefono %><% } %></p>
+            <% if (r.quando) { %><p class="testo" style="margin:.2rem 0 0"><%= r.quando %></p><% } %>
+            <% if (r.messaggio) { %><p class="testo" style="margin:.2rem 0 0"><%= r.messaggio %></p><% } %>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+</div>
+
+<%- include('partials/piede') %>

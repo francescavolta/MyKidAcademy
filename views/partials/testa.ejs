@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= titolo %> · MyKidAcademy</title>
+<meta name="description" content="Agenzia di ripetizioni, aiuto compiti, babysitter e aiuto in casa. Scegli la persona giusta e ti richiamiamo noi.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Karla:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="barra">
+  <div class="contenitore">
+    <a class="marchio" href="/">MyKidAcademy</a>
+    <nav>
+      <a href="/tutor" <%- percorso.startsWith('/tutor') ? 'aria-current="page"' : '' %>>Le nostre tutor</a>
+      <% if (!utente) { %>
+        <a href="/lavora-con-noi">Lavora con noi</a>
+        <a href="/accedi">Accedi</a>
+      <% } else { %>
+        <a href="/area"><%= utente.role === 'admin' ? 'Coordinamento' : 'La mia pagina' %></a>
+        <form method="post" action="/esci"><button class="link-testo" type="submit">Esci</button></form>
+      <% } %>
+    </nav>
+  </div>
+</header>
+<main class="contenitore">
+<% if (avviso) { %>
+  <p class="avviso <%= avviso.tipo === 'errore' ? 'avviso--errore' : '' %>"><%= avviso.testo %></p>
+<% } %>

@@ -1,0 +1,90 @@
+<%- include('partials/testa') %>
+
+<div class="due-colonne" style="margin-top:2rem">
+  <div>
+    <div class="scheda-testa">
+      <div class="monogramma" aria-hidden="true"><%= iniziali(t.nome) %></div>
+      <div>
+        <h1 style="font-size:2.1rem;margin:0"><%= t.nome %></h1>
+        <% if (t.zona) { %><div class="zona"><%= t.zona %></div><% } %>
+      </div>
+    </div>
+
+    <% if (t.bio) { %><p style="margin-top:1.2rem"><%= t.bio %></p><% } %>
+
+    <% if (t.mansioni.length) { %>
+      <h3>Di cosa si occupa</h3>
+      <ul class="etichette"><% t.mansioni.forEach(function (m) { %><li><%= labelMansione(m) %></li><% }) %></ul>
+    <% } %>
+
+    <% if (t.materie.length) { %>
+      <h3 style="margin-top:1.3rem">Materie</h3>
+      <ul class="etichette"><% t.materie.forEach(function (m) { %><li><%= m %></li><% }) %></ul>
+    <% } %>
+
+    <% if (t.tariffa !== null) { %>
+      <p class="tariffa" style="font-size:1.25rem;margin-top:1.3rem"><%= Number(t.tariffa) %> € l'ora</p>
+    <% } %>
+
+    <h3 style="margin-top:1.8rem">Quando è libera</h3>
+    <% if (giorni.length === 0) { %>
+      <div class="vuoto"><p>Nessuna fascia pubblicata in questo momento. Mandaci la richiesta qui accanto e ti diciamo noi quando può.</p></div>
+    <% } else { %>
+      <ul class="agenda">
+        <% giorni.forEach(function (g) { %>
+          <li class="giorno">
+            <h3><%= dataIt(g.data) %></h3>
+            <% g.slots.forEach(function (s) { %>
+              <div class="fascia">
+                <span class="orario"><%= ora(s.ora_inizio) %> – <%= ora(s.ora_fine) %></span>
+                <% if (s.nota) { %><span class="nota"><%= s.nota %></span><% } %>
+              </div>
+            <% }) %>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+
+  <div>
+    <div class="scheda">
+      <h2 style="font-size:1.4rem">Richiedi <%= t.nome.split(' ')[0] %></h2>
+      <p class="testo">Lascia i tuoi dati: ti richiamiamo noi per confermare giorni e orari.</p>
+      <form class="modulo" method="post" action="/tutor/<%= t.id %>/richiesta">
+        <div>
+          <label for="mansione">Di cosa hai bisogno</label>
+          <select id="mansione" name="mansione" required>
+            <% MANSIONI.filter(function (m) { return t.mansioni.includes(m.id); }).forEach(function (m) { %>
+              <option value="<%= m.id %>" <%- mansionePre === m.id ? 'selected' : '' %>><%= m.label %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label for="genitore_nome">Il tuo nome</label>
+          <input id="genitore_nome" name="genitore_nome" type="text" required>
+        </div>
+        <div>
+          <label for="genitore_email">Email</label>
+          <input id="genitore_email" name="genitore_email" type="email" required>
+        </div>
+        <div>
+          <label for="genitore_telefono">Telefono</label>
+          <input id="genitore_telefono" name="genitore_telefono" type="tel">
+        </div>
+        <div>
+          <label for="quando">Quando ti servirebbe</label>
+          <input id="quando" name="quando" type="text" placeholder="Martedì e giovedì pomeriggio">
+        </div>
+        <div>
+          <label for="messaggio">Qualche dettaglio
+            <span class="aiuto">Età dei bambini, classe, cosa serve.</span>
+          </label>
+          <textarea id="messaggio" name="messaggio"></textarea>
+        </div>
+        <div><button class="bottone" type="submit">Invia la richiesta</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/piede') %>

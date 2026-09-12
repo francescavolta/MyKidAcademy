@@ -1,0 +1,148 @@
+<%- include('partials/testa') %>
+
+<h1 style="margin-top:2rem">Coordinamento</h1>
+<p class="guida">Tutto quello che passa dal sito: candidature da approvare, ragazze attive, richieste dei genitori.</p>
+
+<ul class="sommario">
+  <li><b><%= inAttesa.length %></b> candidature da vedere</li>
+  <li><b><%= attive.length %></b> ragazze attive</li>
+  <li><b><%= richieste.filter(function (r) { return r.stato === 'nuova'; }).length %></b> richieste nuove</li>
+</ul>
+
+<section>
+  <h2>Candidature in attesa</h2>
+  <% if (inAttesa.length === 0) { %>
+    <div class="vuoto"><p>Nessuna candidatura in sospeso. Quando qualcuno si registra da “Lavora con noi” compare qui.</p></div>
+  <% } else { %>
+    <div class="tabella-avvolgi">
+      <table>
+        <thead>
+          <tr><th>Nome</th><th>Email</th><th>Zona</th><th>Mansioni</th><th>Tariffa</th><th>Azioni</th></tr>
+        </thead>
+        <tbody>
+          <% inAttesa.forEach(function (t) { %>
+            <tr>
+              <td><a href="/area/coordinamento/tutor/<%= t.id %>"><%= t.nome %></a></td>
+              <td><%= t.email %><% if (t.telefono) { %><br><span class="zona"><%= t.telefono %></span><% } %></td>
+              <td><%= t.zona || '—' %></td>
+              <td><%= t.mansioni.map(labelMansione).join(', ') || '—' %></td>
+              <td><%= t.tariffa !== null ? Number(t.tariffa) + ' €' : '—' %></td>
+              <td>
+                <div class="riga-azioni">
+                  <form method="post" action="/area/coordinamento/tutor/<%= t.id %>/stato">
+                    <input type="hidden" name="stato" value="approvato">
+                    <button class="bottone piccolo" type="submit">Approva</button>
+                  </form>
+                  <form method="post" action="/area/coordinamento/tutor/<%= t.id %>/stato">
+                    <input type="hidden" name="stato" value="rifiutato">
+                    <button class="bottone piccolo chiaro" type="submit">Rifiuta</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<section>
+  <h2>Ragazze attive</h2>
+  <% if (attive.length === 0) { %>
+    <div class="vuoto"><p>Nessuna scheda pubblica per ora. Approva una candidatura e comparirà sul sito.</p></div>
+  <% } else { %>
+    <div class="tabella-avvolgi">
+      <table>
+        <thead>
+          <tr><th>Nome</th><th>Contatti</th><th>Mansioni</th><th>Materie</th><th>Tariffa</th><th>Azioni</th></tr>
+        </thead>
+        <tbody>
+          <% attive.forEach(function (t) { %>
+            <tr>
+              <td><a href="/area/coordinamento/tutor/<%= t.id %>"><%= t.nome %></a><br><span class="zona"><%= t.zona || '' %></span></td>
+              <td><%= t.email %><% if (t.telefono) { %><br><span class="zona"><%= t.telefono %></span><% } %></td>
+              <td><%= t.mansioni.map(labelMansione).join(', ') || '—' %></td>
+              <td><%= t.materie.join(', ') || '—' %></td>
+              <td><%= t.tariffa !== null ? Number(t.tariffa) + ' €' : '—' %></td>
+              <td>
+                <div class="riga-azioni">
+                  <a class="bottone piccolo chiaro" href="/area/coordinamento/tutor/<%= t.id %>">Apri scheda</a>
+                  <form method="post" action="/area/coordinamento/tutor/<%= t.id %>/stato">
+                    <input type="hidden" name="stato" value="sospeso">
+                    <button class="bottone piccolo chiaro" type="submit">Sospendi</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<section>
+  <h2>Richieste dei genitori</h2>
+  <% if (richieste.length === 0) { %>
+    <div class="vuoto"><p>Nessuna richiesta ancora. Arrivano dalle pagine delle ragazze.</p></div>
+  <% } else { %>
+    <div class="tabella-avvolgi">
+      <table>
+        <thead>
+          <tr><th>Arrivata</th><th>Genitore</th><th>Per</th><th>Tutor</th><th>Quando</th><th>Stato</th></tr>
+        </thead>
+        <tbody>
+          <% richieste.forEach(function (r) { %>
+            <tr>
+              <td><%= new Date(r.created_at).toLocaleDateString('it-IT') %></td>
+              <td><%= r.genitore_nome %><br><span class="zona"><%= r.genitore_email %><% if (r.genitore_telefono) { %> · <%= r.genitore_telefono %><% } %></span>
+                <% if (r.messaggio) { %><br><span class="nota"><%= r.messaggio %></span><% } %></td>
+              <td><%= labelMansione(r.mansione) %></td>
+              <td><%= r.tutor_nome || '—' %></td>
+              <td><%= r.quando || '—' %></td>
+              <td>
+                <form method="post" action="/area/coordinamento/richieste/<%= r.id %>/stato">
+                  <select name="stato" onchange="this.form.submit()">
+                    <% STATI_RICHIESTA.forEach(function (s) { %>
+                      <option value="<%= s %>" <%- r.stato === s ? 'selected' : '' %>><%= s.replace('_', ' ') %></option>
+                    <% }) %>
+                  </select>
+                  <noscript><button class="bottone piccolo chiaro" type="submit">Salva</button></noscript>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<% if (altre.length) { %>
+<section>
+  <h2>Rifiutate e sospese</h2>
+  <div class="tabella-avvolgi">
+    <table>
+      <thead><tr><th>Nome</th><th>Email</th><th>Stato</th><th>Azioni</th></tr></thead>
+      <tbody>
+        <% altre.forEach(function (t) { %>
+          <tr>
+            <td><%= t.nome %></td>
+            <td><%= t.email %></td>
+            <td><span class="stato stato--<%= t.status %>"><%= t.status %></span></td>
+            <td>
+              <form method="post" action="/area/coordinamento/tutor/<%= t.id %>/stato">
+                <input type="hidden" name="stato" value="approvato">
+                <button class="bottone piccolo chiaro" type="submit">Riattiva</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<% } %>
+
+<%- include('partials/piede') %>

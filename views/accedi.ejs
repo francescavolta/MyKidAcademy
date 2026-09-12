@@ -1,0 +1,27 @@
+<%- include('partials/testa') %>
+
+<div class="due-colonne" style="margin-top:2.5rem">
+  <div>
+    <h1>Accedi</h1>
+    <p class="guida">Con l'email che hai usato per candidarti. Il coordinamento entra con la sua email e vede tutto.</p>
+    <form class="modulo" method="post" action="/accedi">
+      <div>
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required>
+      </div>
+      <div>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <div><button class="bottone" type="submit">Entra</button></div>
+    </form>
+  </div>
+  <div class="scheda">
+    <h2 style="font-size:1.3rem">Non hai un account?</h2>
+    <p class="testo">I genitori non devono registrarsi: basta scegliere una ragazza e mandare la richiesta.</p>
+    <p class="testo">Se invece vuoi collaborare con noi, manda la candidatura: ti creiamo la pagina e la approviamo noi.</p>
+    <div><a class="bottone chiaro" href="/lavora-con-noi">Candidati</a></div>
+  </div>
+</div>
+
+<%- include('partials/piede') %>
