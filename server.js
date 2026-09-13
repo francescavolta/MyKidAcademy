@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
 // Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
-const VERSIONE = '13 settembre 2026 · tariffe a range, referenze corrette';
+const VERSIONE = '13 settembre 2026 (b) · eliminazione richieste e conversazioni';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
@@ -1586,6 +1586,51 @@ app.post(
 
     if (!req.session.avviso) avvisa(req, 'Stato aggiornato.');
     res.redirect(req.body.ritorno || '/area/coordinamento');
+  })
+);
+
+app.post(
+  '/area/coordinamento/richieste/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from richieste where id = $1', [req.params.id]);
+    const r = rows[0];
+    if (!r) {
+      avvisa(req, 'Quella richiesta non c\'era più.', 'errore');
+      return res.redirect('/area/coordinamento');
+    }
+
+    // Se avevo occupato una fascia per questa famiglia, la libero prima di cancellare.
+    if (r.disponibilita_id) {
+      await pool.query(
+        "update disponibilita set stato = 'libero', nota = '' where id = $1 and nota = $2",
+        [r.disponibilita_id, `Famiglia ${r.genitore_nome}`]
+      );
+    }
+
+    // La conversazione si cancella solo se me lo chiedi: altrimenti resta, scollegata.
+    let conversazioneTolta = false;
+    if (req.body.con_conversazione === 'si') {
+      const { rowCount } = await pool.query('delete from conversazioni where richiesta_id = $1', [r.id]);
+      conversazioneTolta = rowCount > 0;
+    }
+
+    await pool.query('delete from richieste where id = $1', [r.id]);
+    avvisa(
+      req,
+      `Richiesta di ${r.genitore_nome} eliminata definitivamente${r.disponibilita_id ? ', fascia liberata' : ''}${conversazioneTolta ? ', conversazione cancellata' : ''}.`
+    );
+    res.redirect('/area/coordinamento');
+  })
+);
+
+app.post(
+  '/area/coordinamento/messaggi/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rowCount } = await pool.query('delete from conversazioni where id = $1', [req.params.id]);
+    avvisa(req, rowCount ? 'Conversazione eliminata con tutti i messaggi.' : 'Quella conversazione non c\'era più.');
+    res.redirect('/area/coordinamento/messaggi');
   })
 );
 

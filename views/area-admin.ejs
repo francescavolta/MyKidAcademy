@@ -130,7 +130,7 @@
     <div class="tabella-avvolgi">
       <table>
         <thead>
-          <tr><th>Arrivata</th><th>Genitore</th><th>Per</th><th>Tutor</th><th>Fascia</th><th>Stato</th><th>Chat</th></tr>
+          <tr><th>Arrivata</th><th>Genitore</th><th>Per</th><th>Tutor</th><th>Fascia</th><th>Stato</th><th>Chat</th><th></th></tr>
         </thead>
         <tbody>
           <% richieste.forEach(function (r) { %>
@@ -180,6 +180,17 @@
                 <% } else { %>
                   <span class="data">—</span>
                 <% } %>
+              </td>
+              <td>
+                <form method="post" action="/area/coordinamento/richieste/<%= r.id %>/elimina"
+                      onsubmit="return confirm('Eliminare per sempre la richiesta di <%= r.genitore_nome %>? Non si può recuperare.')">
+                  <% if (r.conversazione_id) { %>
+                    <label class="data" style="display:block;margin-bottom:.2rem">
+                      <input type="checkbox" name="con_conversazione" value="si"> anche la chat
+                    </label>
+                  <% } %>
+                  <button class="bottone piccolo chiaro" type="submit" title="Elimina definitivamente">Elimina</button>
+                </form>
               </td>
             </tr>
           <% }) %>

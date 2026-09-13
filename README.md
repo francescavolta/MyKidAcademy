@@ -103,6 +103,13 @@ Quando il coordinamento porta una richiesta a **confermata**, se alla richiesta 
 
 **Agenda della settimana** (`/area/coordinamento/agenda`): tutte le ragazze approvate in righe, i sette giorni in colonne, le fasce nelle celle con verde/rosso, oggi evidenziato, frecce per cambiare settimana. Serve a rispondere a "chi ho libero giovedì alle 15" senza aprire le schede una a una.
 
+## Eliminare davvero
+
+- **Richiesta**: bottone Elimina nella tabella delle richieste. Cancella per sempre, libera la fascia se era stata occupata per quella famiglia (solo se la nota è quella scritta dal sistema) e, con la casella spuntata, porta via anche la conversazione. Senza spunta la chat resta, scollegata dalla richiesta.
+- **Conversazione**: "Elimina tutto" nella pagina della conversazione, lato coordinamento. Cancella conversazione e messaggi; il link della mamma smette di funzionare.
+
+Entrambe sono irreversibili e servono anche a rispondere a chi chiede la cancellazione dei propri dati.
+
 ## Chat famiglia / tutor
 
 Tabelle `conversazioni` e `messaggi`. Una conversazione nasce **da sola** quando una famiglia manda una richiesta: il testo della richiesta diventa il primo messaggio.

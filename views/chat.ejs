@@ -28,6 +28,10 @@
       <form method="post" action="/area/coordinamento/messaggi/<%= c.id %>/chiudi">
         <button class="bottone piccolo chiaro" type="submit"><%= c.aperta ? 'Chiudi la conversazione' : 'Riapri' %></button>
       </form>
+      <form method="post" action="/area/coordinamento/messaggi/<%= c.id %>/elimina"
+            onsubmit="return confirm('Eliminare per sempre questa conversazione e tutti i messaggi?')">
+        <button class="bottone piccolo chiaro" type="submit">Elimina tutto</button>
+      </form>
     </div>
   <% } %>
 </div>
