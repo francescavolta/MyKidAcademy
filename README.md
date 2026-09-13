@@ -89,6 +89,16 @@ Serve un PostgreSQL raggiungibile. Se usi quello di Render dall'esterno, prendi 
 | `views/admin-aspetto.ejs` | la pagina "Aspetto del sito" nel coordinamento |
 | `views/` | le pagine. `partials/campi-tutor.ejs` è il modulo condiviso tra candidatura, area tutor e scheda del coordinamento |
 
+## Richieste e calendario
+
+Quando il coordinamento porta una richiesta a **confermata**, se alla richiesta è collegata una fascia (`richieste.disponibilita_id`) la fascia diventa `occupato` con nota "Famiglia <nome>", e partono due email: conferma alla famiglia e avviso alla tutor, entrambe con data e ora.
+
+- Se quella fascia risulta già occupata da un'altra famiglia, la conferma **non** la sovrascrive: compare un avviso in rosso, così il doppio impegno lo vedi prima di crearlo.
+- Se riporti la richiesta a uno stato diverso da confermata, la fascia torna libera — ma solo se la nota è quella scritta dal sistema per quella richiesta: le fasce segnate a mano non vengono mai toccate.
+- La fascia la sceglie la famiglia dal modulo, oppure la colleghi tu dal menù nella colonna "Fascia" della tabella delle richieste, che mostra le fasce libere future di quella ragazza.
+
+**Agenda della settimana** (`/area/coordinamento/agenda`): tutte le ragazze approvate in righe, i sette giorni in colonne, le fasce nelle celle con verde/rosso, oggi evidenziato, frecce per cambiare settimana. Serve a rispondere a "chi ho libero giovedì alle 15" senza aprire le schede una a una.
+
 ## Chat famiglia / tutor
 
 Tabelle `conversazioni` e `messaggi`. Una conversazione nasce **da sola** quando una famiglia manda una richiesta: il testo della richiesta diventa il primo messaggio.

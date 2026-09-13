@@ -830,3 +830,12 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
 }
 .link-chat .testo { margin: 0.3rem 0 0.6rem; }
 .link-chat input { font-size: 0.85rem; background: #fff; }
+
+/* ---------- agenda della settimana ---------- */
+
+.agenda-settimana th, .agenda-settimana td { vertical-align: top; min-width: 108px; }
+.agenda-settimana thead th { text-align: center; text-transform: capitalize; }
+.agenda-settimana tbody th { text-align: left; font-weight: 700; white-space: nowrap; }
+.agenda-settimana td { padding: 0.4rem; }
+.agenda-settimana .cal-fascia { margin-bottom: 2px; }
+.agenda-settimana .oggi { background: var(--velo); }

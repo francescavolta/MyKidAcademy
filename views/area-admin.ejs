@@ -4,6 +4,7 @@
 <p class="guida">Tutto quello che passa dal sito: candidature da approvare, ragazze attive, richieste dei genitori.</p>
 
 <ul class="scorciatoie">
+  <li><a class="bottone chiaro" href="/area/coordinamento/agenda">Agenda della settimana</a></li>
   <li><a class="bottone chiaro" href="/area/coordinamento/messaggi">Messaggi<% if (messaggiNuovi) { %> · <%= messaggiNuovi %><% } %></a></li>
   <li><a class="bottone chiaro" href="/area/coordinamento/home">Home</a></li>
   <li><a class="bottone chiaro" href="/area/coordinamento/blog">Blog</a></li>
@@ -127,7 +128,7 @@
     <div class="tabella-avvolgi">
       <table>
         <thead>
-          <tr><th>Arrivata</th><th>Genitore</th><th>Per</th><th>Tutor</th><th>Quando</th><th>Stato</th><th>Chat</th></tr>
+          <tr><th>Arrivata</th><th>Genitore</th><th>Per</th><th>Tutor</th><th>Fascia</th><th>Stato</th><th>Chat</th></tr>
         </thead>
         <tbody>
           <% richieste.forEach(function (r) { %>
@@ -137,7 +138,26 @@
                 <% if (r.messaggio) { %><br><span class="nota"><%= r.messaggio %></span><% } %></td>
               <td><%= labelMansione(r.mansione) %></td>
               <td><%= r.tutor_nome || '—' %></td>
-              <td><%= r.quando || '—' %></td>
+              <td>
+                <% if (r.quando) { %><div class="data"><%= r.quando %></div><% } %>
+                <% var mie = fasceLibere.filter(function (f) { return f.user_id === r.tutor_id; }); %>
+                <% if (r.tutor_id && (mie.length || r.disponibilita_id)) { %>
+                  <form method="post" action="/area/coordinamento/richieste/<%= r.id %>/fascia">
+                    <select name="disponibilita_id" onchange="this.form.submit()" aria-label="Fascia per <%= r.genitore_nome %>">
+                      <option value="">nessuna fascia</option>
+                      <% if (r.disponibilita_id && !mie.some(function (f) { return f.id === r.disponibilita_id; })) { %>
+                        <option value="<%= r.disponibilita_id %>" selected>fascia già scelta</option>
+                      <% } %>
+                      <% mie.forEach(function (f) { %>
+                        <option value="<%= f.id %>" <%- r.disponibilita_id === f.id ? 'selected' : '' %>>
+                          <%= new Date(f.data).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }) %> <%= ora(f.ora_inizio) %>
+                        </option>
+                      <% }) %>
+                    </select>
+                    <noscript><button class="bottone piccolo chiaro" type="submit">Collega</button></noscript>
+                  </form>
+                <% } else { %>—<% } %>
+              </td>
               <td>
                 <form method="post" action="/area/coordinamento/richieste/<%= r.id %>/stato">
                   <select name="stato" onchange="this.form.submit()">

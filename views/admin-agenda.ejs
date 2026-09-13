@@ -1,0 +1,59 @@
+<%- include('partials/testa') %>
+
+<p style="margin-top:1.5rem"><a href="/area/coordinamento">← Coordinamento</a></p>
+<h1>Agenda della settimana</h1>
+<p class="guida">Tutte le ragazze in una schermata: <%= etichetta %>. In questa settimana ci sono <strong><%= libere %></strong> fasce libere.</p>
+
+<div class="riga-azioni" style="margin-bottom:1rem">
+  <a class="bottone piccolo chiaro" href="/area/coordinamento/agenda?dal=<%= settimanaPrima %>">← Settimana prima</a>
+  <a class="bottone piccolo chiaro" href="/area/coordinamento/agenda">Questa settimana</a>
+  <a class="bottone piccolo chiaro" href="/area/coordinamento/agenda?dal=<%= settimanaDopo %>">Settimana dopo →</a>
+</div>
+
+<% if (tutor.length === 0) { %>
+  <div class="vuoto"><p>Non c'è ancora nessuna ragazza approvata.</p></div>
+<% } else { %>
+  <div class="tabella-avvolgi">
+    <table class="agenda-settimana">
+      <thead>
+        <tr>
+          <th>Ragazza</th>
+          <% giorni.forEach(function (g) { %>
+            <th class="<%= g.oggi ? 'oggi' : '' %>">
+              <%= new Date(g.data).toLocaleDateString('it-IT', { weekday: 'short', timeZone: 'UTC' }) %><br>
+              <span class="data"><%= new Date(g.data).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', timeZone: 'UTC' }) %></span>
+            </th>
+          <% }) %>
+        </tr>
+      </thead>
+      <tbody>
+        <% tutor.forEach(function (t) { %>
+          <tr>
+            <th scope="row"><a href="/area/coordinamento/tutor/<%= t.id %>"><%= t.nome %></a></th>
+            <% giorni.forEach(function (g) { %>
+              <% var fasce = per[t.id + '|' + g.chiave] || []; %>
+              <td class="<%= g.oggi ? 'oggi' : '' %>">
+                <% if (fasce.length === 0) { %>
+                  <span class="data">·</span>
+                <% } else { %>
+                  <% fasce.forEach(function (f) { %>
+                    <span class="cal-fascia cal-fascia--<%= f.stato %>" title="<%= f.nota || (f.stato === 'occupato' ? 'occupato' : 'libero') %>">
+                      <%= ora(f.ora_inizio) %>–<%= ora(f.ora_fine) %><%= f.nota ? ' · ' + f.nota : '' %>
+                    </span>
+                  <% }) %>
+                <% } %>
+              </td>
+            <% }) %>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="cal-legenda" style="margin-top:1rem">
+    <span class="cal-fascia cal-fascia--libero">libero</span>
+    <span class="cal-fascia cal-fascia--occupato">occupato</span>
+  </p>
+<% } %>
+
+<%- include('partials/piede') %>
