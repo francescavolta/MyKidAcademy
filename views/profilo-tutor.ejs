@@ -22,8 +22,8 @@
       <ul class="etichette"><% t.materie.forEach(function (m) { %><li><%= m %></li><% }) %></ul>
     <% } %>
 
-    <% if (t.tariffa !== null) { %>
-      <p class="tariffa" style="font-size:1.25rem;margin-top:1.3rem"><%= Number(t.tariffa) %> € l'ora</p>
+    <% if (tariffaTesto(t)) { %>
+      <p class="tariffa" style="font-size:1.25rem;margin-top:1.3rem"><%= tariffaTesto(t) %></p>
     <% } %>
     <% if (t.referenze_n > 0) { %>
       <p style="margin:0"><span class="stelle"><%= stelline(t.stelle_media) %></span> <span class="data"><%= Number(t.stelle_media) %> su 5 · <%= t.referenze_n %> referenze</span></p>

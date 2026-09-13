@@ -400,6 +400,7 @@ app.use(
     res.locals.FONT = FONT;
     res.locals.scurisci = scurisci;
     res.locals.contrasto = contrasto;
+    res.locals.tariffaTesto = tariffaTesto;
     res.locals.RAGGI = RAGGI;
     res.locals.COLORI_TESTO = COLORI_TESTO;
     res.locals.stelline = (n) => '★'.repeat(Math.round(Number(n) || 0)) + '☆'.repeat(5 - Math.round(Number(n) || 0));
@@ -728,9 +729,24 @@ async function salvaMaterie(userId, testo) {
   }
 }
 
+// "15 €" se c'è solo il minimo, "15-20 €" se c'è anche il massimo.
+function tariffaTesto(t) {
+  if (t.tariffa === null || t.tariffa === undefined) return null;
+  const da = Number(t.tariffa);
+  const a = t.tariffa_max === null || t.tariffa_max === undefined ? null : Number(t.tariffa_max);
+  const n = (x) => String(Math.round(x * 100) / 100).replace('.', ',');
+  return a && a > da ? `${n(da)}–${n(a)} € l'ora` : `${n(da)} € l'ora`;
+}
+
 function tariffaValida(v) {
   const n = Number(String(v).replace(',', '.'));
   return Number.isFinite(n) && n >= 0 && n <= 999 ? n : null;
+}
+
+function tariffaMassima(min, max) {
+  const a = tariffaValida(min);
+  const b = tariffaValida(max);
+  return a !== null && b !== null && b > a ? b : null;
 }
 
 /* ---------- pagine pubbliche ---------- */
@@ -992,8 +1008,8 @@ app.post(
 
     const hash = await bcrypt.hash(password, 12);
     const { rows } = await pool.query(
-      `insert into users (email, password_hash, role, status, nome, telefono, zona, bio, tariffa)
-       values ($1,$2,'tutor','in_attesa',$3,$4,$5,$6,$7) returning id`,
+      `insert into users (email, password_hash, role, status, nome, telefono, zona, bio, tariffa, tariffa_max)
+       values ($1,$2,'tutor','in_attesa',$3,$4,$5,$6,$7,$8) returning id`,
       [
         email,
         hash,
@@ -1001,7 +1017,8 @@ app.post(
         String(req.body.telefono || '').trim(),
         String(req.body.zona || '').trim(),
         String(req.body.bio || '').trim().slice(0, 1200),
-        tariffaValida(req.body.tariffa)
+        tariffaValida(req.body.tariffa),
+        tariffaMassima(req.body.tariffa, req.body.tariffa_max)
       ]
     );
     await salvaMansioni(rows[0].id, req.body.mansioni);
@@ -1219,13 +1236,14 @@ app.post(
   soloTutor,
   wrap(async (req, res) => {
     await pool.query(
-      `update users set nome=$1, telefono=$2, zona=$3, bio=$4, tariffa=$5 where id=$6`,
+      `update users set nome=$1, telefono=$2, zona=$3, bio=$4, tariffa=$5, tariffa_max=$6 where id=$7`,
       [
         String(req.body.nome || '').trim() || req.utente.nome,
         String(req.body.telefono || '').trim(),
         String(req.body.zona || '').trim(),
         String(req.body.bio || '').trim().slice(0, 1200),
         tariffaValida(req.body.tariffa),
+        tariffaMassima(req.body.tariffa, req.body.tariffa_max),
         req.utente.id
       ]
     );
@@ -1409,14 +1427,15 @@ app.post(
   wrap(async (req, res) => {
     const id = req.params.id;
     await pool.query(
-      `update users set nome=$1, telefono=$2, zona=$3, bio=$4, tariffa=$5, nota_interna=$6
-       where id=$7 and role='tutor'`,
+      `update users set nome=$1, telefono=$2, zona=$3, bio=$4, tariffa=$5, tariffa_max=$6, nota_interna=$7
+       where id=$8 and role='tutor'`,
       [
         String(req.body.nome || '').trim(),
         String(req.body.telefono || '').trim(),
         String(req.body.zona || '').trim(),
         String(req.body.bio || '').trim().slice(0, 1200),
         tariffaValida(req.body.tariffa),
+        tariffaMassima(req.body.tariffa, req.body.tariffa_max),
         String(req.body.nota_interna || '').trim().slice(0, 600),
         id
       ]

@@ -89,6 +89,10 @@ Serve un PostgreSQL raggiungibile. Se usi quello di Render dall'esterno, prendi 
 | `views/admin-aspetto.ejs` | la pagina "Aspetto del sito" nel coordinamento |
 | `views/` | le pagine. `partials/campi-tutor.ejs` è il modulo condiviso tra candidatura, area tutor e scheda del coordinamento |
 
+## Tariffe
+
+Ogni tutor ha `tariffa` (il minimo) e, se vuole, `tariffa_max`. La pagina scrive "15 € l'ora" con il solo minimo e "15–20 € l'ora" quando c'è anche il massimo, in un unico punto: `tariffaTesto()` in `server.js`, usata da tutte le viste. Un massimo minore o uguale al minimo viene ignorato.
+
 ## Richieste e calendario
 
 Quando il coordinamento porta una richiesta a **confermata**, se alla richiesta è collegata una fascia (`richieste.disponibilita_id`) la fascia diventa `occupato` con nota "Famiglia <nome>", e partono due email: conferma alla famiglia e avviso alla tutor, entrambe con data e ora.

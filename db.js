@@ -180,6 +180,7 @@ const AGGIUNTE = `
 alter table users add column if not exists immagine_id integer references immagini(id) on delete set null;
 alter table richieste add column if not exists disponibilita_id integer references disponibilita(id) on delete set null;
 alter table conversazioni add column if not exists richiesta_id integer references richieste(id) on delete set null;
+alter table users add column if not exists tariffa_max numeric(6,2);
 `;
 
 async function initDb() {

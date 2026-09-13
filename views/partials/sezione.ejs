@@ -32,7 +32,7 @@
               <% t.mansioni.forEach(function (m) { %><li><%= labelMansione(m) %></li><% }) %>
             </ul>
           <% } %>
-          <% if (t.tariffa !== null) { %><div class="tariffa"><%= Number(t.tariffa) %> € l'ora</div><% } %>
+          <% if (tariffaTesto(t)) { %><div class="tariffa"><%= tariffaTesto(t) %></div><% } %>
         </li>
       <% }) %>
     </ul>

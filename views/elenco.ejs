@@ -58,7 +58,7 @@
         <% if (t.referenze_n > 0) { %>
           <div><span class="stelle"><%= stelline(t.stelle_media) %></span> <span class="data"><%= t.referenze_n %></span></div>
         <% } %>
-        <% if (t.tariffa !== null) { %><div class="tariffa"><%= Number(t.tariffa) %> € l'ora</div><% } %>
+        <% if (tariffaTesto(t)) { %><div class="tariffa"><%= tariffaTesto(t) %></div><% } %>
         <div><a class="bottone piccolo chiaro" href="/tutor/<%= t.id %>">Vedi la pagina</a></div>
       </li>
     <% }) %>

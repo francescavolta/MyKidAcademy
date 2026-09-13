@@ -16,8 +16,15 @@
     <input id="zona" name="zona" type="text" value="<%= t.zona %>" placeholder="Bologna, zona Saragozza">
   </div>
   <div>
-    <label for="tariffa">Tariffa oraria (€)</label>
-    <input id="tariffa" name="tariffa" type="number" min="0" max="999" step="0.5" value="<%= t.tariffa !== null ? Number(t.tariffa) : '' %>">
+    <label for="tariffa">Tariffa oraria (€)
+      <span class="aiuto">Se cambia in base alla materia o all'età, metti anche il massimo: sulla pagina esce "15–20 € l'ora".</span>
+    </label>
+    <div class="doppia">
+      <input id="tariffa" name="tariffa" type="number" min="0" max="999" step="0.5" placeholder="da" aria-label="Tariffa minima"
+             value="<%= t.tariffa !== null && t.tariffa !== undefined ? Number(t.tariffa) : '' %>">
+      <input id="tariffa_max" name="tariffa_max" type="number" min="0" max="999" step="0.5" placeholder="a (facoltativo)" aria-label="Tariffa massima"
+             value="<%= t.tariffa_max !== null && t.tariffa_max !== undefined ? Number(t.tariffa_max) : '' %>">
+    </div>
   </div>
 </div>
 <fieldset>

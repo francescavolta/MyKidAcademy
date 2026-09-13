@@ -38,7 +38,7 @@
               <td><%= t.email %><% if (t.telefono) { %><br><span class="zona"><%= t.telefono %></span><% } %></td>
               <td><%= t.zona || '—' %></td>
               <td><%= t.mansioni.map(labelMansione).join(', ') || '—' %></td>
-              <td><%= t.tariffa !== null ? Number(t.tariffa) + ' €' : '—' %></td>
+              <td><%= tariffaTesto(t) || '—' %></td>
               <td>
                 <div class="riga-azioni">
                   <form method="post" action="/area/coordinamento/tutor/<%= t.id %>/stato">
@@ -76,7 +76,7 @@
               <td><%= t.email %><% if (t.telefono) { %><br><span class="zona"><%= t.telefono %></span><% } %></td>
               <td><%= t.mansioni.map(labelMansione).join(', ') || '—' %></td>
               <td><%= t.materie.join(', ') || '—' %></td>
-              <td><%= t.tariffa !== null ? Number(t.tariffa) + ' €' : '—' %></td>
+              <td><%= tariffaTesto(t) || '—' %></td>
               <td>
                 <div class="riga-azioni">
                   <a class="bottone piccolo chiaro" href="/area/coordinamento/tutor/<%= t.id %>">Apri scheda</a>
