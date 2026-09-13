@@ -127,7 +127,7 @@
     <div class="tabella-avvolgi">
       <table>
         <thead>
-          <tr><th>Arrivata</th><th>Genitore</th><th>Per</th><th>Tutor</th><th>Quando</th><th>Stato</th></tr>
+          <tr><th>Arrivata</th><th>Genitore</th><th>Per</th><th>Tutor</th><th>Quando</th><th>Stato</th><th>Chat</th></tr>
         </thead>
         <tbody>
           <% richieste.forEach(function (r) { %>
@@ -147,6 +147,17 @@
                   </select>
                   <noscript><button class="bottone piccolo chiaro" type="submit">Salva</button></noscript>
                 </form>
+              </td>
+              <td>
+                <% if (r.conversazione_id) { %>
+                  <a class="bottone piccolo chiaro" href="/area/coordinamento/messaggi/<%= r.conversazione_id %>">Apri</a>
+                <% } else if (r.tutor_id) { %>
+                  <form method="post" action="/area/coordinamento/richieste/<%= r.id %>/conversazione">
+                    <button class="bottone piccolo chiaro" type="submit">Crea</button>
+                  </form>
+                <% } else { %>
+                  <span class="data">—</span>
+                <% } %>
               </td>
             </tr>
           <% }) %>

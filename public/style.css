@@ -819,3 +819,14 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
   vertical-align: middle;
   margin-left: 0.3rem;
 }
+
+.link-chat {
+  border: 1px solid var(--rosa);
+  border-radius: var(--raggio);
+  background: var(--velo);
+  padding: 0.9rem 1.1rem;
+  margin-top: 1.2rem;
+  max-width: 44rem;
+}
+.link-chat .testo { margin: 0.3rem 0 0.6rem; }
+.link-chat input { font-size: 0.85rem; background: #fff; }

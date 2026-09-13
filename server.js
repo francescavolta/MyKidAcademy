@@ -853,8 +853,10 @@ app.post(
       azione: { testo: 'Apri i messaggi', link: urlAssoluto(req, '/area/tutor/messaggi') }
     });
 
-    avvisa(req, `Richiesta inviata. Ti ricontattiamo noi per confermare con ${t.nome}.`);
-    res.redirect(`/tutor/${t.id}`);
+    req.session.mieChat = req.session.mieChat || [];
+    if (!req.session.mieChat.includes(token)) req.session.mieChat.push(token);
+    avvisa(req, `Richiesta inviata a ${t.nome}. Questa è la vostra conversazione: salva il link di questa pagina per tornarci.`);
+    res.redirect(`/chat/${token}`);
   })
 );
 
@@ -916,7 +918,13 @@ app.get(
       });
     }
     await segnaVisto(c, 'visto_genitore');
-    res.render('chat', { titolo: `Conversazione con ${c.tutor_nome}`, c, messaggi: await messaggiDi(c.id), chi: 'genitore' });
+    res.render('chat', {
+      titolo: `Conversazione con ${c.tutor_nome}`,
+      linkGenitore: urlAssoluto(req, `/chat/${c.token}`),
+      c,
+      messaggi: await messaggiDi(c.id),
+      chi: 'genitore'
+    });
   })
 );
 
@@ -1174,7 +1182,7 @@ app.get(
       return res.status(404).render('errore', { titolo: 'Non trovata', messaggio: 'Questa conversazione non è tua.' });
     }
     await segnaVisto(c, 'visto_tutor');
-    res.render('chat', { titolo: `Conversazione con ${c.genitore_nome}`, c, messaggi: await messaggiDi(c.id), chi: 'tutor' });
+    res.render('chat', { titolo: `Conversazione con ${c.genitore_nome}`, linkGenitore: null, c, messaggi: await messaggiDi(c.id), chi: 'tutor' });
   })
 );
 
@@ -1296,7 +1304,9 @@ app.get(
       `${SELECT_TUTOR} where u.role = 'tutor' group by u.id order by u.created_at desc`
     );
     const { rows: richieste } = await pool.query(
-      `select r.*, u.nome as tutor_nome from richieste r
+      `select r.*, u.nome as tutor_nome,
+              (select c.id from conversazioni c where c.richiesta_id = r.id) as conversazione_id
+       from richieste r
        left join users u on u.id = r.tutor_id
        order by (r.stato = 'nuova') desc, r.created_at desc
        limit 100`
@@ -1508,6 +1518,58 @@ app.get(
 
 /* ---------- chat: il coordinamento vede tutto ---------- */
 
+app.post(
+  '/area/coordinamento/richieste/:id/conversazione',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from richieste where id = $1', [req.params.id]);
+    const r = rows[0];
+    if (!r || !r.tutor_id) {
+      avvisa(req, 'Questa richiesta non è collegata a nessuna ragazza.', 'errore');
+      return res.redirect('/area/coordinamento');
+    }
+    const gia = await pool.query('select id from conversazioni where richiesta_id = $1', [r.id]);
+    if (gia.rows[0]) return res.redirect(`/area/coordinamento/messaggi/${gia.rows[0].id}`);
+
+    const token = crypto.randomBytes(24).toString('hex');
+    const { rows: conv } = await pool.query(
+      `insert into conversazioni (tutor_id, richiesta_id, genitore_nome, genitore_email, token)
+       values ($1,$2,$3,$4,$5) returning id`,
+      [r.tutor_id, r.id, r.genitore_nome, r.genitore_email, token]
+    );
+    await pool.query(
+      `insert into messaggi (conversazione_id, autore, nome, testo) values ($1,'genitore',$2,$3)`,
+      [conv[0].id, r.genitore_nome, `Richiesta di ${labelMansione(r.mansione)}.` + (r.quando ? `\nQuando: ${r.quando}` : '') + (r.messaggio ? `\n\n${r.messaggio}` : '')]
+    );
+    avvisa(req, 'Conversazione aperta: copia il link qui sotto e mandalo alla mamma su WhatsApp o per email.');
+    res.redirect(`/area/coordinamento/messaggi/${conv[0].id}`);
+  })
+);
+
+app.post(
+  '/area/coordinamento/messaggi/:id/rimanda',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const c = await conversazione('id', req.params.id);
+    if (!c || !c.genitore_email) return res.redirect('/area/coordinamento/messaggi');
+    const andata = await invia({
+      a: c.genitore_email,
+      oggetto: `Il link della conversazione con ${c.tutor_nome}`,
+      titolo: 'Ecco il link',
+      testo: `Ciao ${c.genitore_nome},\n\nda qui puoi scrivere a ${c.tutor_nome.split(' ')[0]} e vedere le risposte. Tienilo da parte: è il tuo accesso alla conversazione.`,
+      azione: { testo: 'Apri la conversazione', link: urlAssoluto(req, `/chat/${c.token}`) }
+    });
+    avvisa(
+      req,
+      andata
+        ? 'Link rimandato per email.'
+        : 'Email non configurata: copia il link qui sotto e mandaglielo tu su WhatsApp.',
+      andata ? 'ok' : 'errore'
+    );
+    res.redirect(`/area/coordinamento/messaggi/${c.id}`);
+  })
+);
+
 app.get(
   '/area/coordinamento/messaggi',
   soloAdmin,
@@ -1528,6 +1590,7 @@ app.get(
     if (!c) return res.status(404).render('errore', { titolo: 'Non trovata', messaggio: 'Questa conversazione non esiste.' });
     await segnaVisto(c, 'visto_admin');
     res.render('chat', {
+      linkGenitore: urlAssoluto(req, `/chat/${c.token}`),
       titolo: `${c.genitore_nome} e ${c.tutor_nome}`,
       c,
       messaggi: await messaggiDi(c.id),

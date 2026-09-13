@@ -97,13 +97,15 @@ Chi entra e come:
 
 | Chi | Come accede |
 |---|---|
-| Famiglia | link segreto `/chat/<token>` ricevuto nell'email di conferma. Nessuna registrazione |
+| Famiglia | **subito dopo aver mandato la richiesta finisce dentro la conversazione**, e vede il proprio link da salvare. Lo riceve anche per email, se le email sono configurate. Nessuna registrazione |
 | Tutor | dalla sua area, sezione Messaggi (solo le proprie) |
 | Coordinamento | `/area/coordinamento/messaggi`: tutte, con la possibilità di scrivere come "Coordinamento" e di chiudere una conversazione |
 
 Ogni nuovo messaggio manda un'email a chi deve leggerlo (e al coordinamento quando scrive la famiglia). I non letti si calcolano confrontando `ultimo_messaggio` con `visto_tutor` / `visto_admin` / `visto_genitore`, e compaiono come contatore nelle due aree.
 
 Il fatto che il coordinamento legga è **scritto in chiaro** in cima alla conversazione a entrambe le parti: è una scelta voluta, non una sorveglianza nascosta, e in un servizio che coinvolge minori è anche una tutela per la tutor. Chiudendo una conversazione nessuno può più scrivere, tranne il coordinamento.
+
+Se le email non sono attive, la chat funziona lo stesso: il coordinamento vede il link della mamma in cima alla conversazione e può copiarlo (o farlo rimandare per email con un bottone). Le richieste arrivate prima di questa funzione non hanno una conversazione: nella tabella delle richieste c'è "Crea", che la apre riportandoci dentro il testo della richiesta.
 
 Il token è una stringa casuale di 24 byte: chi ha il link entra. Va bene per messaggi organizzativi; non è il posto per dati delicati, e questo è scritto anche nella privacy.
 

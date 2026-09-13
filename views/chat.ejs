@@ -32,6 +32,25 @@
   <% } %>
 </div>
 
+<% if (chi === 'genitore' && linkGenitore) { %>
+  <div class="link-chat">
+    <strong>Salva questo indirizzo</strong>
+    <p class="testo">È il tuo accesso privato a questa conversazione: se chiudi la pagina, ci torni da qui. Te l'abbiamo mandato anche per email.</p>
+    <input type="text" value="<%= linkGenitore %>" readonly onclick="this.select()" aria-label="Il tuo link">
+  </div>
+<% } %>
+
+<% if (chi === 'coordinamento' && linkGenitore) { %>
+  <div class="link-chat">
+    <strong>Link della mamma</strong>
+    <p class="testo">Con questo indirizzo <%= c.genitore_nome %> entra nella conversazione, senza registrarsi. Se le email non sono ancora attive, copialo e mandaglielo tu su WhatsApp.</p>
+    <input type="text" value="<%= linkGenitore %>" readonly onclick="this.select()" aria-label="Link della mamma">
+    <form method="post" action="/area/coordinamento/messaggi/<%= c.id %>/rimanda" style="margin-top:.6rem">
+      <button class="bottone piccolo chiaro" type="submit">Rimandaglielo per email</button>
+    </form>
+  </div>
+<% } %>
+
 <ol class="chat">
   <% messaggi.forEach(function (m) { %>
     <li class="bolla bolla--<%= m.autore %> <%= m.autore === chi ? 'bolla--mia' : '' %>">
