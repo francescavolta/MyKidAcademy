@@ -106,10 +106,12 @@
         <div class="data"><%= r.autore %><% if (r.email) { %> · <%= r.email %><% } %> · <%= new Date(r.created_at).toLocaleDateString('it-IT') %></div>
         <div class="riga-azioni" style="margin-top:.6rem">
           <form method="post" action="/area/coordinamento/referenze/<%= r.id %>/pubblica">
+            <input type="hidden" name="ritorno" value="coordinamento">
             <button class="bottone piccolo" type="submit">Pubblica</button>
           </form>
           <form method="post" action="/area/coordinamento/referenze/<%= r.id %>/elimina"
                 onsubmit="return confirm('Eliminare questa referenza?')">
+            <input type="hidden" name="ritorno" value="coordinamento">
             <button class="bottone piccolo chiaro" type="submit">Elimina</button>
           </form>
           <a class="bottone piccolo chiaro" href="/area/coordinamento/tutor/<%= r.tutor_id %>">Apri la scheda</a>
@@ -245,5 +247,7 @@
     </div>
   </div>
 </section>
+
+<p class="data" style="margin-top:2.5rem">Versione del sito online: <strong><%= VERSIONE %></strong></p>
 
 <%- include('partials/piede') %>

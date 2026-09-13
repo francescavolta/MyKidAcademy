@@ -7,14 +7,35 @@ const PgStore = require('connect-pg-simple')(session);
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const crypto = require('crypto');
+const fs = require('fs');
 const { pool, initDb } = require('./db');
 const { invia, avvisaAdmin } = require('./mail');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
+// Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
+const VERSIONE = '13 settembre 2026 · tariffe a range, referenze corrette';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
+
+const FILE_ATTESI = [
+  'db.js', 'mail.js', 'package.json', 'render.yaml',
+  'public/carica-immagine.js', 'public/editor.js', 'public/modifica-home.js', 'public/style.css',
+  'views/accedi.ejs', 'views/admin-agenda.ejs', 'views/admin-articolo.ejs', 'views/admin-aspetto.ejs',
+  'views/admin-blog.ejs', 'views/admin-home.ejs', 'views/admin-immagini.ejs', 'views/admin-pagina.ejs',
+  'views/admin-pagine.ejs', 'views/admin-sezione.ejs', 'views/admin-tutor.ejs', 'views/area-admin.ejs',
+  'views/area-tutor.ejs', 'views/articolo.ejs', 'views/blog.ejs', 'views/candidatura.ejs', 'views/chat.ejs',
+  'views/elenco.ejs', 'views/errore.ejs', 'views/home.ejs', 'views/messaggi-elenco.ejs', 'views/pagina.ejs',
+  'views/password-chiedi.ejs', 'views/password-nuova.ejs', 'views/privacy.ejs', 'views/profilo-tutor.ejs',
+  'views/partials/calendario.ejs', 'views/partials/campi-tutor.ejs', 'views/partials/consenso.ejs',
+  'views/partials/faccia.ejs', 'views/partials/piede.ejs', 'views/partials/referenze.ejs',
+  'views/partials/sezione.ejs', 'views/partials/testa.ejs'
+];
+
+function fileMancanti() {
+  return FILE_ATTESI.filter((f) => !fs.existsSync(path.join(__dirname, f)));
+}
 
 const MANSIONI = [
   { id: 'ripetizioni', label: 'Ripetizioni', desc: 'Lezioni su una materia, a casa o online.' },
@@ -401,6 +422,7 @@ app.use(
     res.locals.scurisci = scurisci;
     res.locals.contrasto = contrasto;
     res.locals.tariffaTesto = tariffaTesto;
+    res.locals.VERSIONE = VERSIONE;
     res.locals.RAGGI = RAGGI;
     res.locals.COLORI_TESTO = COLORI_TESTO;
     res.locals.stelline = (n) => '★'.repeat(Math.round(Number(n) || 0)) + '☆'.repeat(5 - Math.round(Number(n) || 0));
@@ -672,6 +694,17 @@ async function conversazioniPer({ tutorId, campoVisto }) {
     tutorId ? [tutorId] : []
   );
   return rows;
+}
+
+// Dopo un'azione torno dove chiede il modulo; se punta alla scheda di una tutor
+// che non esiste più, torno al coordinamento invece di mostrare un errore.
+async function ritornoSicuro(ritorno, tutorId) {
+  if (ritorno === 'coordinamento') return '/area/coordinamento';
+  if (tutorId) {
+    const { rows } = await pool.query("select 1 from users where id = $1 and role = 'tutor'", [tutorId]);
+    if (rows[0]) return `/area/coordinamento/tutor/${tutorId}`;
+  }
+  return '/area/coordinamento';
 }
 
 async function referenzeDi(tutorId, { tutte = false } = {}) {
@@ -1567,7 +1600,797 @@ app.post(
   })
 );
 
-/* ---------- errori ---------- *//* ---------- errori ---------- */
+/* ---------- pagine pubbliche: blog, pagine libere, privacy, immagini ---------- */
+
+app.get(
+  '/blog',
+  wrap(async (req, res) => {
+    const { rows } = await pool.query(
+      'select * from articoli where pubblicato = true order by created_at desc limit 50'
+    );
+    res.render('blog', { titolo: res.locals.cfg.titolo_blog || 'Blog', articoli: rows });
+  })
+);
+
+app.get(
+  '/blog/:slug',
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from articoli where slug = $1', [req.params.slug]);
+    const a = rows[0];
+    const suo = req.utente && req.utente.role === 'admin';
+    if (!a || (!a.pubblicato && !suo)) {
+      return res.status(404).render('errore', { titolo: 'Articolo non trovato', messaggio: 'Questo articolo non esiste o non è ancora pubblicato.' });
+    }
+    res.render('articolo', { titolo: a.titolo, a });
+  })
+);
+
+app.get('/privacy', (req, res) => {
+  res.render('privacy', { titolo: 'Privacy' });
+});
+
+app.get(
+  '/pagina/:slug',
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from pagine where slug = $1', [req.params.slug]);
+    const p = rows[0];
+    const suo = req.utente && req.utente.role === 'admin';
+    if (!p || (!p.attiva && !suo)) {
+      return res.status(404).render('errore', { titolo: 'Pagina non trovata', messaggio: 'Questa pagina non esiste o non è ancora pubblicata.' });
+    }
+    res.render('pagina', { titolo: p.titolo, p });
+  })
+);
+
+app.get(
+  '/immagini/:id',
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select tipo, dati from immagini where id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).end();
+    res.set('Content-Type', rows[0].tipo);
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(rows[0].dati);
+  })
+);
+
+/* ---------- immagini (solo admin) ---------- */
+
+app.get(
+  '/area/coordinamento/immagini.json',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select id, nome from immagini order by created_at desc');
+    res.json(rows);
+  })
+);
+
+app.get(
+  '/area/coordinamento/immagini',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select id, nome, tipo, peso, alt, created_at from immagini order by created_at desc');
+    const { rows: spazio } = await pool.query('select coalesce(sum(peso), 0) as totale from immagini');
+    res.render('admin-immagini', { titolo: 'Immagini', immagini: rows, totale: Number(spazio[0].totale) });
+  })
+);
+
+app.post(
+  '/area/coordinamento/immagini',
+  soloAdmin,
+  riceviImmagine,
+  wrap(async (req, res) => {
+    if (req.erroreFile) {
+      avvisa(req, req.erroreFile, 'errore');
+      return res.redirect('/area/coordinamento/immagini');
+    }
+    if (!req.file) {
+      avvisa(req, 'Scegli un file prima di caricare.', 'errore');
+      return res.redirect('/area/coordinamento/immagini');
+    }
+    if (!TIPI_IMMAGINE.includes(req.file.mimetype)) {
+      avvisa(req, 'Vanno bene solo JPG, PNG, WEBP e GIF.', 'errore');
+      return res.redirect('/area/coordinamento/immagini');
+    }
+    await pool.query('insert into immagini (nome, tipo, peso, dati, alt) values ($1,$2,$3,$4,$5)', [
+      String(req.body.nome || req.file.originalname || 'immagine').trim().slice(0, 120),
+      req.file.mimetype,
+      req.file.size,
+      req.file.buffer,
+      String(req.body.alt || '').trim().slice(0, 300)
+    ]);
+    avvisa(req, 'Immagine caricata.');
+    res.redirect('/area/coordinamento/immagini');
+  })
+);
+
+app.post(
+  '/area/coordinamento/immagini/:id/alt',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('update immagini set alt = $1 where id = $2', [
+      String(req.body.alt || '').trim().slice(0, 300),
+      req.params.id
+    ]);
+    avvisa(req, 'Descrizione salvata.');
+    res.redirect('/area/coordinamento/immagini');
+  })
+);
+
+app.post(
+  '/area/coordinamento/immagini/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('delete from immagini where id = $1', [req.params.id]);
+    avvisa(req, 'Immagine eliminata. Dove era inserita, ora non compare più.');
+    res.redirect('/area/coordinamento/immagini');
+  })
+);
+
+/* ---------- aspetto ---------- */
+
+app.get(
+  '/area/coordinamento/aspetto',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows: immagini } = await pool.query('select id, nome from immagini order by created_at desc');
+    res.render('admin-aspetto', { titolo: 'Aspetto del sito', CAMPI_ASPETTO, GRUPPI_ASPETTO, immagini });
+  })
+);
+
+app.post(
+  '/area/coordinamento/aspetto',
+  soloAdmin,
+  wrap(async (req, res) => {
+    for (const c of CAMPI_ASPETTO) {
+      let v = String(req.body[c.chiave] == null ? '' : req.body[c.chiave]).trim();
+      if (c.tipo === 'colore' && !/^#[0-9a-fA-F]{6}$/.test(v)) v = c.def;
+      if (c.tipo === 'font' && !FONT[v]) v = c.def;
+      if (c.tipo === 'scelta' && !Object.keys(c.opzioni).includes(v)) v = c.def;
+      if (c.tipo === 'immagine' && !/^\d+$/.test(v)) v = '';
+      if (c.tipo === 'testo') v = v.slice(0, 200);
+      if (c.tipo === 'area') v = v.slice(0, 700);
+      if (v === '' && c.tipo !== 'immagine') v = c.def;
+      await pool.query(
+        `insert into impostazioni (chiave, valore) values ($1, $2)
+         on conflict (chiave) do update set valore = excluded.valore`,
+        [c.chiave, v]
+      );
+    }
+    await impostazioni(true);
+    avvisa(req, 'Aspetto aggiornato. Apri la home per vederlo.');
+    res.redirect('/area/coordinamento/aspetto');
+  })
+);
+
+app.post(
+  '/area/coordinamento/aspetto/ripristina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('delete from impostazioni');
+    await impostazioni(true);
+    avvisa(req, 'Ripristinati i colori e i testi di partenza.');
+    res.redirect('/area/coordinamento/aspetto');
+  })
+);
+
+/* ---------- blog: scrittura ---------- */
+
+app.get(
+  '/area/coordinamento/blog',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from articoli order by created_at desc');
+    res.render('admin-blog', { titolo: 'Blog', articoli: rows });
+  })
+);
+
+app.get(
+  '/area/coordinamento/blog/nuovo',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows: immagini } = await pool.query('select id, nome from immagini order by created_at desc');
+    res.render('admin-articolo', {
+      titolo: 'Nuovo articolo',
+      a: { id: null, titolo: '', slug: '', sommario: '', corpo: '', pubblicato: false, immagine_id: null },
+      immagini
+    });
+  })
+);
+
+app.post(
+  '/area/coordinamento/blog',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const titolo = String(req.body.titolo || '').trim();
+    if (!titolo) {
+      avvisa(req, 'Serve almeno il titolo per salvare l\'articolo.', 'errore');
+      return res.redirect('/area/coordinamento/blog/nuovo');
+    }
+    const slug = await slugLibero(req.body.slug || titolo);
+    const { rows } = await pool.query(
+      `insert into articoli (titolo, slug, sommario, corpo, pubblicato, immagine_id)
+       values ($1,$2,$3,$4,$5,$6) returning id`,
+      [titolo, slug, String(req.body.sommario || '').trim().slice(0, 300), String(req.body.corpo || ''), req.body.pubblicato === 'si', req.body.immagine_id || null]
+    );
+    avvisa(req, req.body.pubblicato === 'si' ? 'Articolo pubblicato.' : 'Bozza salvata: non è ancora visibile.');
+    res.redirect(`/area/coordinamento/blog/${rows[0].id}`);
+  })
+);
+
+app.get(
+  '/area/coordinamento/blog/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from articoli where id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).render('errore', { titolo: 'Non trovato', messaggio: 'Questo articolo non esiste.' });
+    const { rows: immagini } = await pool.query('select id, nome from immagini order by created_at desc');
+    res.render('admin-articolo', { titolo: rows[0].titolo, a: rows[0], immagini });
+  })
+);
+
+app.post(
+  '/area/coordinamento/blog/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const titolo = String(req.body.titolo || '').trim();
+    if (!titolo) {
+      avvisa(req, 'Il titolo non può restare vuoto.', 'errore');
+      return res.redirect(`/area/coordinamento/blog/${req.params.id}`);
+    }
+    const slug = await slugLibero(req.body.slug || titolo, req.params.id);
+    await pool.query(
+      `update articoli set titolo=$1, slug=$2, sommario=$3, corpo=$4, pubblicato=$5, immagine_id=$6, updated_at=now()
+       where id=$7`,
+      [titolo, slug, String(req.body.sommario || '').trim().slice(0, 300), String(req.body.corpo || ''), req.body.pubblicato === 'si', req.body.immagine_id || null, req.params.id]
+    );
+    avvisa(req, req.body.pubblicato === 'si' ? 'Articolo salvato e online.' : 'Salvato come bozza.');
+    res.redirect(`/area/coordinamento/blog/${req.params.id}`);
+  })
+);
+
+app.post(
+  '/area/coordinamento/blog/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('delete from articoli where id = $1', [req.params.id]);
+    avvisa(req, 'Articolo eliminato.');
+    res.redirect('/area/coordinamento/blog');
+  })
+);
+
+/* ---------- pagine libere (Chi siamo, domande frequenti) ---------- */
+
+app.get(
+  '/area/coordinamento/pagine',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from pagine order by ordine asc, id asc');
+    res.render('admin-pagine', { titolo: 'Pagine', pagine: rows });
+  })
+);
+
+app.post(
+  '/area/coordinamento/pagine',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const titolo = String(req.body.titolo || '').trim();
+    if (!titolo) {
+      avvisa(req, 'Serve il titolo della pagina.', 'errore');
+      return res.redirect('/area/coordinamento/pagine');
+    }
+    const base = slugify(titolo);
+    let slug = base;
+    for (let i = 2; i < 40; i++) {
+      const c = await pool.query('select 1 from pagine where slug = $1', [slug]);
+      if (!c.rowCount) break;
+      slug = `${base}-${i}`;
+    }
+    const { rows: max } = await pool.query('select coalesce(max(ordine), 0) as m from pagine');
+    const { rows } = await pool.query(
+      'insert into pagine (slug, titolo, ordine) values ($1,$2,$3) returning id',
+      [slug, titolo, Number(max[0].m) + 1]
+    );
+    res.redirect(`/area/coordinamento/pagine/${rows[0].id}`);
+  })
+);
+
+app.get(
+  '/area/coordinamento/pagine/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from pagine where id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).render('errore', { titolo: 'Non trovata', messaggio: 'Questa pagina non esiste.' });
+    res.render('admin-pagina', { titolo: rows[0].titolo, p: rows[0] });
+  })
+);
+
+app.post(
+  '/area/coordinamento/pagine/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query(
+      `update pagine set titolo=$1, corpo=$2, attiva=$3, nel_menu=$4, updated_at=now() where id=$5`,
+      [
+        String(req.body.titolo || '').trim().slice(0, 120),
+        String(req.body.corpo || '').slice(0, 20000),
+        req.body.attiva === 'si',
+        req.body.nel_menu === 'si',
+        req.params.id
+      ]
+    );
+    await menuPagine(true);
+    avvisa(req, req.body.attiva === 'si' ? 'Pagina salvata e online.' : 'Pagina salvata come bozza.');
+    res.redirect('/area/coordinamento/pagine');
+  })
+);
+
+app.post(
+  '/area/coordinamento/pagine/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('delete from pagine where id = $1', [req.params.id]);
+    await menuPagine(true);
+    avvisa(req, 'Pagina eliminata.');
+    res.redirect('/area/coordinamento/pagine');
+  })
+);
+
+/* ---------- home: blocchi ---------- */
+
+app.get(
+  '/area/coordinamento/home',
+  soloAdmin,
+  wrap(async (req, res) => {
+    res.render('admin-home', {
+      titolo: 'Home',
+      sezioni: await sezioniHome({ soloAttive: false }),
+      TIPI_SEZIONE,
+      LARGHEZZE
+    });
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/ordine',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const ordine = Array.isArray(req.body.ordine) ? req.body.ordine : [];
+    const { rows } = await pool.query('select id from sezioni');
+    const esistenti = new Set(rows.map((r) => String(r.id)));
+    const puliti = ordine.map(String).filter((id) => esistenti.has(id));
+    if (puliti.length !== rows.length) return res.status(400).json({ errore: 'ordine incompleto' });
+    for (let i = 0; i < puliti.length; i++) {
+      await pool.query('update sezioni set ordine = $1 where id = $2', [i + 1, puliti[i]]);
+    }
+    res.json({ ok: true });
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/aggiungi',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const tipo = req.body.tipo;
+    if (!TIPI_SEZIONE[tipo]) {
+      avvisa(req, 'Scegli che tipo di blocco aggiungere.', 'errore');
+      return res.redirect('/area/coordinamento/home');
+    }
+    const { rows: max } = await pool.query('select coalesce(max(ordine), 0) as m from sezioni');
+    const { rows } = await pool.query(
+      `insert into sezioni (tipo, titolo, ordine, attiva) values ($1, $2, $3, false) returning id`,
+      [tipo, tipo === 'testo' ? 'Nuovo blocco' : '', Number(max[0].m) + 1]
+    );
+    if (req.body.ritorno === 'home') {
+      await pool.query('update sezioni set attiva = true where id = $1', [rows[0].id]);
+      avvisa(req, 'Blocco aggiunto in fondo alla home: cliccaci sopra per scriverlo.');
+      return res.redirect('/?modifica=1');
+    }
+    avvisa(req, 'Blocco aggiunto in fondo, per ora spento: compilalo e accendilo.');
+    res.redirect(`/area/coordinamento/home/${rows[0].id}`);
+  })
+);
+
+app.get(
+  '/area/coordinamento/home/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from sezioni where id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).render('errore', { titolo: 'Non trovato', messaggio: 'Questo blocco non esiste.' });
+    const { rows: immagini } = await pool.query('select id, nome from immagini order by created_at desc');
+    res.render('admin-sezione', {
+      titolo: 'Blocco della home',
+      s: rows[0],
+      immagini,
+      TIPI_SEZIONE,
+      POSIZIONI_FOTO,
+      DIMENSIONI_FOTO,
+      ALLINEAMENTI,
+      DIMENSIONI_TITOLO,
+      LARGHEZZE,
+      VERTICALI
+    });
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/:id/campo',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { campo, valore } = req.body;
+    const ammessi = {
+      titolo: () => String(valore || '').trim().slice(0, 160),
+      corpo: () => String(valore || '').slice(0, 4000),
+      larghezza: () => (LARGHEZZE[valore] ? valore : 'piena'),
+      posizione: () => (POSIZIONI_FOTO[valore] ? valore : 'destra'),
+      dimensione: () => (DIMENSIONI_FOTO[valore] ? valore : 'media'),
+      allineamento: () => (ALLINEAMENTI[valore] ? valore : 'sinistra'),
+      dimensione_titolo: () => (DIMENSIONI_TITOLO[valore] ? valore : 'normale'),
+      vert: () => (VERTICALI[valore] ? valore : 'alto'),
+      immagine_id: () => (/^\d+$/.test(String(valore || '')) ? valore : null)
+    };
+    if (!ammessi[campo]) return res.status(400).json({ errore: 'campo non modificabile' });
+    const { rowCount } = await pool.query(`update sezioni set ${campo} = $1 where id = $2`, [ammessi[campo](), req.params.id]);
+    if (!rowCount) return res.status(404).json({ errore: 'blocco non trovato' });
+    res.json({ ok: true });
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query(
+      `update sezioni set titolo=$1, corpo=$2, immagine_id=$3, testo_bottone=$4, link_bottone=$5,
+                          larghezza=$6, attiva=$7, posizione=$8, dimensione=$9,
+                          allineamento=$10, dimensione_titolo=$11, vert=$12
+       where id=$13`,
+      [
+        String(req.body.titolo || '').trim().slice(0, 160),
+        String(req.body.corpo || '').slice(0, 4000),
+        req.body.immagine_id || null,
+        String(req.body.testo_bottone || '').trim().slice(0, 60),
+        String(req.body.link_bottone || '').trim().slice(0, 200),
+        LARGHEZZE[req.body.larghezza] ? req.body.larghezza : 'piena',
+        req.body.attiva === 'si',
+        POSIZIONI_FOTO[req.body.posizione] ? req.body.posizione : 'destra',
+        DIMENSIONI_FOTO[req.body.dimensione] ? req.body.dimensione : 'media',
+        ALLINEAMENTI[req.body.allineamento] ? req.body.allineamento : 'sinistra',
+        DIMENSIONI_TITOLO[req.body.dimensione_titolo] ? req.body.dimensione_titolo : 'normale',
+        VERTICALI[req.body.vert] ? req.body.vert : 'alto',
+        req.params.id
+      ]
+    );
+    avvisa(req, req.body.attiva === 'si' ? 'Blocco salvato e visibile in home.' : 'Blocco salvato, per ora spento.');
+    res.redirect('/area/coordinamento/home');
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/:id/sposta',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const tutte = await sezioniHome({ soloAttive: false });
+    const i = tutte.findIndex((x) => String(x.id) === String(req.params.id));
+    const j = req.body.verso === 'su' ? i - 1 : i + 1;
+    if (i === -1 || j < 0 || j >= tutte.length) return res.redirect('/area/coordinamento/home');
+    const nuovo = tutte.slice();
+    nuovo[i] = tutte[j];
+    nuovo[j] = tutte[i];
+    for (let k = 0; k < nuovo.length; k++) {
+      await pool.query('update sezioni set ordine = $1 where id = $2', [k + 1, nuovo[k].id]);
+    }
+    res.redirect('/area/coordinamento/home');
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/:id/accendi',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('update sezioni set attiva = not attiva where id = $1', [req.params.id]);
+    res.redirect(req.body.ritorno === 'home' ? '/?modifica=1' : '/area/coordinamento/home');
+  })
+);
+
+app.post(
+  '/area/coordinamento/home/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await pool.query('delete from sezioni where id = $1', [req.params.id]);
+    avvisa(req, 'Blocco eliminato.');
+    res.redirect(req.body.ritorno === 'home' ? '/?modifica=1' : '/area/coordinamento/home');
+  })
+);
+
+/* ---------- agenda della settimana ---------- */
+
+app.get(
+  '/area/coordinamento/agenda',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const base = /^\d{4}-\d{2}-\d{2}$/.test(req.query.dal || '') ? new Date(req.query.dal + 'T00:00:00Z') : new Date();
+    const lunedi = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate()));
+    lunedi.setUTCDate(lunedi.getUTCDate() - ((lunedi.getUTCDay() + 6) % 7));
+    const chiave = (d) => d.toISOString().slice(0, 10);
+
+    const giorni = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(lunedi);
+      d.setUTCDate(lunedi.getUTCDate() + i);
+      giorni.push({ chiave: chiave(d), data: d, oggi: chiave(d) === chiave(new Date()) });
+    }
+    const fine = new Date(lunedi);
+    fine.setUTCDate(lunedi.getUTCDate() + 7);
+
+    const { rows: tutor } = await pool.query(
+      `select id, nome, immagine_id from users where role = 'tutor' and status = 'approvato' order by nome asc`
+    );
+    const { rows: fasce } = await pool.query(
+      `select * from disponibilita where data >= $1 and data < $2 order by ora_inizio asc`,
+      [chiave(lunedi), chiave(fine)]
+    );
+
+    const per = {};
+    for (const f of fasce) {
+      const k = `${f.user_id}|${new Date(f.data).toISOString().slice(0, 10)}`;
+      (per[k] = per[k] || []).push(f);
+    }
+
+    const prima = new Date(lunedi);
+    prima.setUTCDate(lunedi.getUTCDate() - 7);
+
+    res.render('admin-agenda', {
+      titolo: 'Agenda della settimana',
+      giorni,
+      tutor,
+      per,
+      settimanaPrima: chiave(prima),
+      settimanaDopo: chiave(fine),
+      etichetta: `${dataBreve(lunedi)} – ${dataBreve(new Date(fine.getTime() - 86400000))}`,
+      libere: fasce.filter((f) => f.stato === 'libero').length
+    });
+  })
+);
+
+/* ---------- chat: il coordinamento vede tutto ---------- */
+
+app.get(
+  '/area/coordinamento/messaggi',
+  soloAdmin,
+  wrap(async (req, res) => {
+    res.render('messaggi-elenco', {
+      titolo: 'Messaggi',
+      conversazioni: await conversazioniPer({ campoVisto: 'visto_admin' }),
+      base: '/area/coordinamento/messaggi'
+    });
+  })
+);
+
+app.get(
+  '/area/coordinamento/messaggi/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const c = await conversazione('id', req.params.id);
+    if (!c) return res.status(404).render('errore', { titolo: 'Non trovata', messaggio: 'Questa conversazione non esiste.' });
+    await segnaVisto(c, 'visto_admin');
+    res.render('chat', {
+      titolo: `${c.genitore_nome} e ${c.tutor_nome}`,
+      linkGenitore: urlAssoluto(req, `/chat/${c.token}`),
+      c,
+      messaggi: await messaggiDi(c.id),
+      chi: 'coordinamento'
+    });
+  })
+);
+
+app.post(
+  '/area/coordinamento/messaggi/:id',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const c = await conversazione('id', req.params.id);
+    if (!c) return res.redirect('/area/coordinamento/messaggi');
+    const m = await scriviMessaggio(c, 'coordinamento', req.utente.nome || 'Coordinamento', req.body.testo);
+    if (m) {
+      if (c.genitore_email) {
+        await invia({
+          a: c.genitore_email,
+          oggetto: 'Messaggio dal coordinamento',
+          titolo: 'Nuovo messaggio',
+          testo: `"${m.testo}"`,
+          azione: { testo: 'Apri la conversazione', link: urlAssoluto(req, `/chat/${c.token}`) }
+        });
+      }
+      await invia({
+        a: c.tutor_email,
+        oggetto: 'Messaggio dal coordinamento',
+        titolo: 'Nuovo messaggio',
+        testo: `"${m.testo}"`,
+        azione: { testo: 'Apri i messaggi', link: urlAssoluto(req, `/area/tutor/messaggi/${c.id}`) }
+      });
+    }
+    res.redirect(`/area/coordinamento/messaggi/${c.id}`);
+  })
+);
+
+app.post(
+  '/area/coordinamento/messaggi/:id/chiudi',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query(
+      'update conversazioni set aperta = not aperta where id = $1 returning aperta',
+      [req.params.id]
+    );
+    avvisa(req, rows[0] && rows[0].aperta ? 'Conversazione riaperta.' : 'Conversazione chiusa: nessuno può più scrivere.');
+    res.redirect(`/area/coordinamento/messaggi/${req.params.id}`);
+  })
+);
+
+app.post(
+  '/area/coordinamento/messaggi/:id/rimanda',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const c = await conversazione('id', req.params.id);
+    if (!c || !c.genitore_email) return res.redirect('/area/coordinamento/messaggi');
+    const andata = await invia({
+      a: c.genitore_email,
+      oggetto: `Il link della conversazione con ${c.tutor_nome}`,
+      titolo: 'Ecco il link',
+      testo: `Ciao ${c.genitore_nome},\n\nda qui puoi scrivere a ${c.tutor_nome.split(' ')[0]} e vedere le risposte. Tienilo da parte: è il tuo accesso alla conversazione.`,
+      azione: { testo: 'Apri la conversazione', link: urlAssoluto(req, `/chat/${c.token}`) }
+    });
+    avvisa(
+      req,
+      andata ? 'Link rimandato per email.' : 'Email non configurata: copia il link qui sotto e mandaglielo tu su WhatsApp.',
+      andata ? 'ok' : 'errore'
+    );
+    res.redirect(`/area/coordinamento/messaggi/${c.id}`);
+  })
+);
+
+app.post(
+  '/area/coordinamento/richieste/:id/conversazione',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from richieste where id = $1', [req.params.id]);
+    const r = rows[0];
+    if (!r || !r.tutor_id) {
+      avvisa(req, 'Questa richiesta non è collegata a nessuna ragazza.', 'errore');
+      return res.redirect('/area/coordinamento');
+    }
+    const gia = await pool.query('select id from conversazioni where richiesta_id = $1', [r.id]);
+    if (gia.rows[0]) return res.redirect(`/area/coordinamento/messaggi/${gia.rows[0].id}`);
+
+    const token = crypto.randomBytes(24).toString('hex');
+    const { rows: conv } = await pool.query(
+      `insert into conversazioni (tutor_id, richiesta_id, genitore_nome, genitore_email, token)
+       values ($1,$2,$3,$4,$5) returning id`,
+      [r.tutor_id, r.id, r.genitore_nome, r.genitore_email, token]
+    );
+    await pool.query(
+      `insert into messaggi (conversazione_id, autore, nome, testo) values ($1,'genitore',$2,$3)`,
+      [conv[0].id, r.genitore_nome, `Richiesta di ${labelMansione(r.mansione)}.` + (r.quando ? `\nQuando: ${r.quando}` : '') + (r.messaggio ? `\n\n${r.messaggio}` : '')]
+    );
+    avvisa(req, 'Conversazione aperta: copia il link qui sotto e mandalo alla mamma su WhatsApp o per email.');
+    res.redirect(`/area/coordinamento/messaggi/${conv[0].id}`);
+  })
+);
+
+/* ---------- referenze ---------- */
+
+app.post(
+  '/area/coordinamento/tutor/:id/referenze',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const stelle = Math.min(5, Math.max(1, parseInt(req.body.stelle, 10) || 0));
+    const commento = String(req.body.commento || '').trim().slice(0, 800);
+    if (!commento) {
+      avvisa(req, 'Scrivi il commento della referenza prima di salvarla.', 'errore');
+      return res.redirect(`/area/coordinamento/tutor/${req.params.id}`);
+    }
+    await pool.query(
+      `insert into referenze (tutor_id, autore, stelle, commento, stato, inserita_da)
+       values ($1,$2,$3,$4,'pubblicata','coordinamento')`,
+      [req.params.id, String(req.body.autore || '').trim().slice(0, 120), stelle, commento]
+    );
+    avvisa(req, 'Referenza aggiunta: ora si vede sulla sua pagina.');
+    res.redirect(`/area/coordinamento/tutor/${req.params.id}`);
+  })
+);
+
+app.post(
+  '/area/coordinamento/referenze/:id/pubblica',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query(
+      "update referenze set stato = 'pubblicata' where id = $1 returning tutor_id",
+      [req.params.id]
+    );
+    if (!rows[0]) {
+      avvisa(req, 'Quella referenza non esiste più: forse era già stata pubblicata o eliminata.', 'errore');
+      return res.redirect('/area/coordinamento');
+    }
+    avvisa(req, 'Referenza pubblicata.');
+    res.redirect(await ritornoSicuro(req.body.ritorno, rows[0].tutor_id));
+  })
+);
+
+app.post(
+  '/area/coordinamento/referenze/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('delete from referenze where id = $1 returning tutor_id', [req.params.id]);
+    avvisa(req, rows[0] ? 'Referenza eliminata.' : 'Quella referenza non c\'era più.');
+    res.redirect(rows[0] ? await ritornoSicuro(req.body.ritorno, rows[0].tutor_id) : '/area/coordinamento');
+  })
+);
+
+/* ---------- account e copia dei dati ---------- */
+
+app.post(
+  '/area/coordinamento/coordinatori',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '');
+    if (!email.includes('@') || password.length < 8) {
+      avvisa(req, 'Serve un\'email valida e una password di almeno 8 caratteri.', 'errore');
+      return res.redirect('/area/coordinamento');
+    }
+    const hash = await bcrypt.hash(password, 12);
+    await pool.query(
+      `insert into users (email, password_hash, role, status, nome)
+       values ($1,$2,'admin','approvato',$3)
+       on conflict (email) do update set password_hash = excluded.password_hash, role = 'admin', status = 'approvato'`,
+      [email, hash, String(req.body.nome || '').trim() || 'Coordinamento']
+    );
+    avvisa(req, `${email} ora entra nel coordinamento con questa password.`);
+    res.redirect('/area/coordinamento');
+  })
+);
+
+app.get('/stato', (req, res) => {
+  const mancanti = fileMancanti();
+  res.json({
+    versione: VERSIONE,
+    node: process.version,
+    file_attesi: FILE_ATTESI.length,
+    file_mancanti: mancanti.length,
+    elenco_mancanti: mancanti,
+    rotte_attive: app._router.stack.filter((r) => r.route).length,
+    esito: mancanti.length ? 'CARICAMENTO INCOMPLETO: mancano dei file' : 'tutti i file sono al loro posto'
+  });
+});
+
+app.get('/versione', soloAdmin, (req, res) => res.json({ versione: VERSIONE, avviata: PROD ? 'produzione' : 'sviluppo' }));
+
+app.get(
+  '/area/coordinamento/esporta.json',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const q = async (sql) => (await pool.query(sql)).rows;
+    const dati = {
+      esportato: new Date().toISOString(),
+      persone: await q('select id, email, role, status, nome, telefono, zona, bio, tariffa, tariffa_max, nota_interna, created_at from users'),
+      mansioni: await q('select * from mansioni'),
+      materie: await q('select * from materie'),
+      disponibilita: await q('select * from disponibilita'),
+      richieste: await q('select * from richieste'),
+      referenze: await q('select * from referenze'),
+      conversazioni: await q('select id, tutor_id, genitore_nome, genitore_email, aperta, created_at from conversazioni'),
+      messaggi: await q('select * from messaggi'),
+      articoli: await q('select * from articoli'),
+      pagine: await q('select * from pagine'),
+      sezioni: await q('select * from sezioni'),
+      impostazioni: await q('select * from impostazioni'),
+      immagini: await q('select id, nome, tipo, peso, alt, created_at from immagini')
+    };
+    res.setHeader('Content-Disposition', `attachment; filename="mykidacademy-${new Date().toISOString().slice(0, 10)}.json"`);
+    res.json(dati);
+  })
+);
+
+
+/* ---------- errori ---------- */
 
 app.use((req, res) => {
   res.status(404).render('errore', { titolo: 'Pagina non trovata', messaggio: 'Il link che hai seguito non esiste più.' });
@@ -1639,6 +2462,16 @@ async function assicuraSezioni() {
   await initDb();
   await assicuraAdmin();
   await assicuraSezioni();
+  const mancanti = fileMancanti();
+  if (mancanti.length) {
+    console.error('=========================================================');
+    console.error(`ATTENZIONE: mancano ${mancanti.length} file. Il caricamento su GitHub è incompleto.`);
+    mancanti.forEach((f) => console.error('  manca: ' + f));
+    console.error('=========================================================');
+  } else {
+    console.log(`Tutti i ${FILE_ATTESI.length} file sono al loro posto.`);
+  }
+  console.log(`Versione: ${VERSIONE}`);
   app.listen(PORT, () => console.log(`MyKidAcademy in ascolto sulla porta ${PORT}`));
 })().catch((e) => {
   console.error('Avvio fallito:', e);

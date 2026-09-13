@@ -1,5 +1,11 @@
 <%- include('partials/testa') %>
 <h1 style="margin-top:2.5rem"><%= titolo %></h1>
 <p><%= messaggio %></p>
-<p><a class="bottone" href="/">Torna alla home</a></p>
+<p class="data">Indirizzo che hai aperto: <code><%= percorso %></code></p>
+<div class="riga-azioni">
+  <a class="bottone" href="/">Torna alla home</a>
+  <% if (utente && utente.role === 'admin') { %>
+    <a class="bottone chiaro" href="/area/coordinamento">Vai al coordinamento</a>
+  <% } %>
+</div>
 <%- include('partials/piede') %>
