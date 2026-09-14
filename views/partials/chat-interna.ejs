@@ -1,0 +1,24 @@
+<span id="conversazione"></span>
+<% if (interna.length === 0) { %>
+  <div class="vuoto">
+    <p><%= chi === 'tutor' ? 'Nessun messaggio. Da qui puoi scrivere al coordinamento quando ti serve: cambi di orario, dubbi, problemi.' : 'Nessun messaggio. Da qui le scrivi direttamente: lo legge solo lei.' %></p>
+  </div>
+<% } else { %>
+  <ol class="chat chat--interna">
+    <% interna.slice(-20).forEach(function (m) { %>
+      <li class="bolla bolla--<%= m.autore %> <%= m.autore === chi ? 'bolla--mia' : '' %>">
+        <div class="bolla-chi"><%= m.nome || (m.autore === 'coordinamento' ? 'Coordinamento' : m.autore) %></div>
+        <p><%= m.testo %></p>
+        <div class="bolla-quando"><%= new Date(m.created_at).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %></div>
+      </li>
+    <% }) %>
+  </ol>
+<% } %>
+
+<form class="modulo" method="post" action="<%= azione %>" style="margin-top:1rem">
+  <div>
+    <label for="testo_interno">Scrivi un messaggio</label>
+    <textarea id="testo_interno" name="testo" maxlength="2000" required style="min-height:4.5rem"></textarea>
+  </div>
+  <div><button class="bottone" type="submit">Invia</button></div>
+</form>

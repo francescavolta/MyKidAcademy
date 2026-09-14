@@ -93,6 +93,14 @@
       </ul>
     <% } %>
 
+    <h2 style="margin-top:2.5rem">Parla con <%= t.nome.split(' ')[0] %></h2>
+    <p class="testo">Conversazione privata fra te e lei. Le famiglie non la vedono, ed è separata dalle chat con i genitori. Le arriva un'email a ogni messaggio.</p>
+    <%- include('partials/chat-interna', { interna: interna, chi: 'coordinamento', azione: '/area/coordinamento/tutor/' + t.id + '/messaggio' }) %>
+
+    <h2 style="margin-top:2.5rem">Documenti</h2>
+    <p class="testo">Documento d'identità, contratto firmato, certificato penale, assicurazione. Li vedi solo tu e lei: nessun altro può aprirli.</p>
+    <%- include('partials/documenti', { documenti: documenti, gestisci: true, azione: '/area/coordinamento/tutor/' + t.id + '/documenti' }) %>
+
     <h2 style="margin-top:2.5rem">Referenze</h2>
     <p class="testo">Le scrivono le famiglie dalla sua pagina e le pubblichi tu. Qui sotto puoi aggiungerne una a mano, per quelle che ti arrivano a voce o su WhatsApp: quella è pubblicata subito.</p>
     <%- include('partials/referenze', { referenze: referenze, gestisci: true }) %>

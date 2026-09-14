@@ -853,3 +853,20 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
   .barre-giorno { width: 4rem; }
   .barre-numero { width: 4.5rem; }
 }
+
+/* ---------- documenti ---------- */
+
+.documenti { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.7rem; }
+.documenti li {
+  border: 1px solid var(--velo);
+  border-radius: var(--raggio);
+  background: #fff;
+  padding: 0.8rem 1rem;
+}
+.doc-testa { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; }
+.doc--scadenza { border-color: #e3c07a; }
+.doc--scaduto { border-color: #d79a9a; background: #fdf6f6; }
+.documenti input[type='date'] { width: auto; padding: 0.25rem 0.5rem; font-size: 0.88rem; }
+
+.chat--interna { max-width: none; margin-top: 1rem; }
+.chat--interna .bolla { max-width: 92%; }

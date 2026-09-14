@@ -103,6 +103,24 @@ Quando il coordinamento porta una richiesta a **confermata**, se alla richiesta 
 
 **Agenda della settimana** (`/area/coordinamento/agenda`): tutte le ragazze approvate in righe, i sette giorni in colonne, le fasce nelle celle con verde/rosso, oggi evidenziato, frecce per cambiare settimana. Serve a rispondere a "chi ho libero giovedì alle 15" senza aprire le schede una a una.
 
+## Chat interna con le collaboratrici
+
+Conversazione privata fra coordinamento e singola tutor: una sola per ragazza, creata al primo messaggio (`conversazioni.tipo = 'interna'`). Compare dentro la scheda della tutor lato coordinamento e dentro la sua area personale, non nella lista "Messaggi" — quella resta riservata alle conversazioni con le famiglie (`conversazioniPer` filtra `tipo = 'famiglia'`).
+
+Ogni messaggio manda un'email all'altra parte. I messaggi non letti dalle ragazze compaiono in cima all'area coordinamento sotto "Messaggi dalle ragazze", con il collegamento diretto alla scheda. Il token di una conversazione interna non apre nulla da `/chat/:token`: è una via chiusa.
+
+## Documenti delle collaboratrici
+
+Tabella `documenti` (tipo, file in `bytea`, scadenza, nota, chi l'ha caricato). Ogni tutor carica i propri dalla sua area; il coordinamento li carica, li vede tutti, cambia le scadenze e li elimina. Il download (`/documenti/:id`) è consentito **solo** all'amministrazione e alla diretta interessata, con `Cache-Control: private, no-store`.
+
+I tipi previsti sono in `TIPI_DOCUMENTO`: documento d'identità, codice fiscale, contratto firmato, certificato penale, assicurazione, titolo di studio, altro. I documenti scaduti o in scadenza entro 30 giorni compaiono in cima all'area coordinamento, in "Documenti da rinnovare", e sono evidenziati nella scheda.
+
+Nessuna famiglia vede mai questi file: non compaiono su nessuna pagina pubblica e `/documenti/` è escluso da `robots.txt`.
+
+## Archivio
+
+Le richieste `confermata` e `chiusa` non compaiono più nella tabella del coordinamento: si vedono con "Mostra anche le N archiviate" (`?archivio=1`). Stessa cosa per le conversazioni chiuse, nella lista dei messaggi, sia lato coordinamento sia lato tutor. Niente viene cancellato: è solo un filtro.
+
 ## Statistiche e Google
 
 **Statistiche** (`/area/coordinamento/statistiche`, tabella `visite`): conteggio interno senza cookie e senza salvare IP. L'impronta è `sha256(sale_del_giorno + ip + user-agent)` troncata, con un sale casuale rigenerato ogni giorno: permette di contare le persone di una giornata, non di riconoscerle il giorno dopo. Non conta le richieste degli amministratori, i robot noti, le pagine sotto `/area`, la chat, `/stato` e i file statici. La pagina mostra persone e pagine viste per giorno, le pagine più viste e la provenienza (Google, Instagram, WhatsApp, diretto). Per il testo privacy c'è già un paragrafo dedicato nel valore di partenza.

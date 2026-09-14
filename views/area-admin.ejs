@@ -22,6 +22,42 @@
   <li><b><%= messaggiNuovi %></b> conversazioni da leggere</li>
 </ul>
 
+<% if (interneNuove.length) { %>
+<section>
+  <h2>Messaggi dalle ragazze</h2>
+  <div class="riga-azioni">
+    <% interneNuove.forEach(function (i) { %>
+      <a class="bottone piccolo" href="/area/coordinamento/tutor/<%= i.tutor_id %>#conversazione"><%= i.nome %></a>
+    <% }) %>
+  </div>
+</section>
+<% } %>
+
+<% if (scadenze.length) { %>
+<section>
+  <h2>Documenti da rinnovare</h2>
+  <div class="tabella-avvolgi">
+    <table>
+      <thead><tr><th>Ragazza</th><th>Documento</th><th>Scadenza</th><th></th></tr></thead>
+      <tbody>
+        <% scadenze.forEach(function (d) { %>
+          <tr>
+            <td><%= d.nome %></td>
+            <td><%= TIPI_DOCUMENTO[d.tipo] ? TIPI_DOCUMENTO[d.tipo].nome : d.tipo %></td>
+            <td>
+              <span class="stato <%= d.scaduto ? 'stato--rifiutato' : 'stato--in_attesa' %>">
+                <%= new Date(d.scadenza).toLocaleDateString('it-IT') %><%= d.scaduto ? ' · scaduto' : '' %>
+              </span>
+            </td>
+            <td><a class="bottone piccolo chiaro" href="/area/coordinamento/tutor/<%= d.tutor_id %>">Apri la scheda</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<% } %>
+
 <section>
   <h2>Candidature in attesa</h2>
   <% if (inAttesa.length === 0) { %>

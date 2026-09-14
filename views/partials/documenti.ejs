@@ -1,0 +1,62 @@
+<% if (documenti.length === 0) { %>
+  <div class="vuoto"><p><%= gestisci ? 'Nessun documento caricato per lei.' : 'Non hai ancora caricato documenti.' %></p></div>
+<% } else { %>
+  <ul class="documenti">
+    <% documenti.forEach(function (d) { %>
+      <li class="<%= d.scaduto ? 'doc--scaduto' : (d.in_scadenza ? 'doc--scadenza' : '') %>">
+        <div class="doc-testa">
+          <strong><%= TIPI_DOCUMENTO[d.tipo] ? TIPI_DOCUMENTO[d.tipo].nome : d.tipo %></strong>
+          <% if (d.scaduto) { %><span class="stato stato--rifiutato">scaduto</span>
+          <% } else if (d.in_scadenza) { %><span class="stato stato--in_attesa">in scadenza</span><% } %>
+        </div>
+        <div class="data">
+          <%= d.nome %> · <%= (d.peso / 1024).toFixed(0) %> KB
+          <% if (d.scadenza) { %> · scade il <%= new Date(d.scadenza).toLocaleDateString('it-IT') %><% } %>
+          · caricato il <%= new Date(d.created_at).toLocaleDateString('it-IT') %> da <%= d.caricato_da %>
+        </div>
+        <% if (d.nota) { %><p class="testo" style="margin:.3rem 0 0"><%= d.nota %></p><% } %>
+        <div class="riga-azioni" style="margin-top:.5rem">
+          <a class="bottone piccolo chiaro" href="/documenti/<%= d.id %>" target="_blank" rel="noopener">Apri</a>
+          <% if (gestisci) { %>
+            <form method="post" action="/area/coordinamento/documenti/<%= d.id %>/scadenza" class="riga-azioni">
+              <input type="date" name="scadenza" value="<%= d.scadenza ? new Date(d.scadenza).toISOString().slice(0,10) : '' %>" aria-label="Scadenza">
+              <button class="bottone piccolo chiaro" type="submit">Salva scadenza</button>
+            </form>
+            <form method="post" action="/area/coordinamento/documenti/<%= d.id %>/elimina"
+                  onsubmit="return confirm('Eliminare questo documento?')">
+              <button class="bottone piccolo chiaro" type="submit">Elimina</button>
+            </form>
+          <% } %>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<form class="modulo" method="post" action="<%= azione %>" enctype="multipart/form-data" style="margin-top:1.2rem">
+  <div class="doppia">
+    <div>
+      <label for="tipo_doc">Che documento è</label>
+      <select id="tipo_doc" name="tipo">
+        <% Object.keys(TIPI_DOCUMENTO).forEach(function (k) { %>
+          <option value="<%= k %>"><%= TIPI_DOCUMENTO[k].nome %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div>
+      <label for="scadenza_doc">Scadenza <span class="aiuto">Se ce l'ha.</span></label>
+      <input id="scadenza_doc" name="scadenza" type="date">
+    </div>
+  </div>
+  <div>
+    <label for="file_doc">Il file <span class="aiuto">PDF, JPG o PNG. Va bene anche la foto fatta col telefono, purché si legga.</span></label>
+    <input id="file_doc" name="file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" required>
+  </div>
+  <% if (gestisci) { %>
+    <div>
+      <label for="nota_doc">Nota interna</label>
+      <input id="nota_doc" name="nota" type="text" maxlength="300">
+    </div>
+  <% } %>
+  <div><button class="bottone" type="submit">Carica il documento</button></div>
+</form>

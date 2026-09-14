@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
 // Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
-const VERSIONE = '14 settembre 2026 (c) · archivio e sitemap';
+const VERSIONE = '14 settembre 2026 (e) · chat interna con le ragazze';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
@@ -53,7 +53,9 @@ const FILE_ATTESI = [
   'views/pagina.ejs',
   'views/partials/calendario.ejs',
   'views/partials/campi-tutor.ejs',
+  'views/partials/chat-interna.ejs',
   'views/partials/consenso.ejs',
+  'views/partials/documenti.ejs',
   'views/partials/faccia.ejs',
   'views/partials/piede.ejs',
   'views/partials/referenze.ejs',
@@ -434,6 +436,17 @@ app.use(
     }
   })
 );
+
+const TIPI_DOCUMENTO = {
+  identita: { nome: "Documento d'identità", scade: true },
+  codice_fiscale: { nome: 'Codice fiscale', scade: false },
+  contratto: { nome: 'Contratto firmato', scade: true },
+  penale: { nome: 'Certificato penale', scade: true },
+  assicurazione: { nome: 'Assicurazione', scade: true },
+  titolo: { nome: 'Titolo di studio', scade: false },
+  altro: { nome: 'Altro', scade: false }
+};
+const TIPI_FILE_DOC = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic'];
 
 const TIPI_IMMAGINE = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_IMMAGINE = 12 * 1024 * 1024;
@@ -822,6 +835,25 @@ async function conversazione(dove, valore) {
   return rows[0] || null;
 }
 
+// Conversazione privata fra coordinamento e collaboratrice: una sola per ragazza,
+// creata al primo messaggio. Non compare mai fra quelle con le famiglie.
+async function conversazioneInterna(tutorId) {
+  const { rows } = await pool.query(
+    `select c.*, u.nome as tutor_nome, u.email as tutor_email
+     from conversazioni c join users u on u.id = c.tutor_id
+     where c.tutor_id = $1 and c.tipo = 'interna'`,
+    [tutorId]
+  );
+  if (rows[0]) return rows[0];
+
+  await pool.query(
+    `insert into conversazioni (tutor_id, tipo, genitore_nome, genitore_email, token, aperta)
+     values ($1, 'interna', '', '', $2, true)`,
+    [tutorId, crypto.randomBytes(24).toString('hex')]
+  );
+  return conversazioneInterna(tutorId);
+}
+
 async function messaggiDi(conversazioneId) {
   const { rows } = await pool.query(
     'select * from messaggi where conversazione_id = $1 order by created_at asc',
@@ -851,7 +883,7 @@ async function segnaVisto(c, campo) {
 
 // Conversazioni con almeno un messaggio non ancora letto da chi guarda.
 async function conversazioniPer({ tutorId, campoVisto, soloAperte = false }) {
-  const filtri = [];
+  const filtri = ["c.tipo = 'famiglia'"];
   if (tutorId) filtri.push('c.tutor_id = $1');
   if (soloAperte) filtri.push('c.aperta = true');
   const cond = filtri.length ? 'where ' + filtri.join(' and ') : '';
@@ -1135,7 +1167,7 @@ app.get(
   '/chat/:token',
   wrap(async (req, res) => {
     const c = await conversazione('token', req.params.token);
-    if (!c) {
+    if (!c || c.tipo === 'interna') {
       return res.status(404).render('errore', {
         titolo: 'Conversazione non trovata',
         messaggio: 'Questo link non è valido. Controlla di aver copiato tutto l\'indirizzo dall\'email.'
@@ -1395,9 +1427,12 @@ app.get(
     );
     const { rows: nonLetti } = await pool.query(
       `select count(*)::int as n from conversazioni
-       where tutor_id = $1 and (visto_tutor is null or ultimo_messaggio > visto_tutor)`,
+       where tutor_id = $1 and tipo = 'famiglia' and (visto_tutor is null or ultimo_messaggio > visto_tutor)`,
       [t.id]
     );
+    const conversazioneMia = await conversazioneInterna(t.id);
+    const interna = await messaggiDi(conversazioneMia.id);
+    await segnaVisto(conversazioneMia, 'visto_tutor');
     const chiave = MESE_OK.test(req.query.mese || '') ? req.query.mese : meseCorrente();
     res.render('area-tutor', {
       messaggiNuovi: nonLetti[0].n,
@@ -1406,6 +1441,9 @@ app.get(
       giorni: raggruppaPerData(slots),
       mese: await meseDi(t.id, chiave),
       referenze: await referenzeDi(t.id, { tutte: true }),
+      documenti: await documentiDi(t.id),
+      TIPI_DOCUMENTO,
+      interna,
       richieste
     });
   })
@@ -1586,13 +1624,28 @@ app.get(
        where stato = 'libero' and data >= current_date
        order by data asc, ora_inizio asc`
     );
+    const { rows: interne } = await pool.query(
+      `select c.tutor_id, u.nome from conversazioni c join users u on u.id = c.tutor_id
+       where c.tipo = 'interna' and (c.visto_admin is null or c.ultimo_messaggio > c.visto_admin)`
+    );
+    const interneNuove = interne;
+    const { rows: scadenze } = await pool.query(
+      `select d.id, d.tipo, d.scadenza, u.id as tutor_id, u.nome,
+              (d.scadenza < current_date) as scaduto
+       from documenti d join users u on u.id = d.user_id
+       where d.scadenza is not null and d.scadenza < current_date + 30
+       order by d.scadenza asc`
+    );
     const { rows: chatNuove } = await pool.query(
       `select count(*)::int as n from conversazioni
-       where visto_admin is null or ultimo_messaggio > visto_admin`
+       where tipo = 'famiglia' and (visto_admin is null or ultimo_messaggio > visto_admin)`
     );
     res.render('area-admin', {
       titolo: 'Coordinamento',
       messaggiNuovi: chatNuove[0].n,
+      interneNuove,
+      scadenze,
+      TIPI_DOCUMENTO,
       tutteLeRichieste,
       archiviate: archiviate[0].n,
       fasceLibere,
@@ -1643,6 +1696,9 @@ app.get(
       'select * from richieste where tutor_id=$1 order by created_at desc limit 30',
       [t.id]
     );
+    const conversazioneMia = await conversazioneInterna(t.id);
+    const interna = await messaggiDi(conversazioneMia.id);
+    await segnaVisto(conversazioneMia, 'visto_admin');
     const chiave = MESE_OK.test(req.query.mese || '') ? req.query.mese : meseCorrente();
     const { rows: ore } = await pool.query(
       `select coalesce(sum(extract(epoch from (ora_fine - ora_inizio)) / 3600), 0) as ore
@@ -1658,6 +1714,9 @@ app.get(
       giorni: raggruppaPerData(slots),
       mese: await meseDi(t.id, chiave),
       referenze: await referenzeDi(t.id, { tutte: true }),
+      documenti: await documentiDi(t.id),
+      TIPI_DOCUMENTO,
+      interna,
       richieste,
       STATI_UTENTE
     });
@@ -2693,6 +2752,111 @@ app.get(
 );
 
 
+/* ---------- documenti delle collaboratrici ---------- */
+
+async function documentiDi(userId) {
+  const { rows } = await pool.query(
+    `select id, user_id, tipo, nome, mime, peso, scadenza, nota, caricato_da, created_at,
+            (scadenza is not null and scadenza < current_date) as scaduto,
+            (scadenza is not null and scadenza >= current_date and scadenza < current_date + 30) as in_scadenza
+     from documenti where user_id = $1 order by tipo asc, created_at desc`,
+    [userId]
+  );
+  return rows;
+}
+
+// Un documento lo scarica solo il coordinamento o la diretta interessata.
+app.get(
+  '/documenti/:id',
+  wrap(async (req, res) => {
+    if (!req.utente) return res.redirect('/accedi');
+    const { rows } = await pool.query('select * from documenti where id = $1', [req.params.id]);
+    const d = rows[0];
+    if (!d) return res.status(404).render('errore', { titolo: 'Non trovato', messaggio: 'Questo documento non esiste.' });
+    if (req.utente.role !== 'admin' && req.utente.id !== d.user_id) {
+      return res.status(403).render('errore', { titolo: 'Accesso negato', messaggio: 'Questo documento non e tuo.' });
+    }
+    res.setHeader('Content-Type', d.mime);
+    res.setHeader('Content-Disposition', `inline; filename="${(d.nome || 'documento').replace(/[^\w.\- ]/g, '')}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(d.dati);
+  })
+);
+
+async function salvaDocumento(req, res, userId, chi) {
+  if (req.erroreFile || !req.file) {
+    avvisa(req, req.erroreFile || 'Scegli un file prima di caricare.', 'errore');
+    return false;
+  }
+  if (!TIPI_FILE_DOC.includes(req.file.mimetype)) {
+    avvisa(req, 'Vanno bene PDF, JPG, PNG o foto del telefono.', 'errore');
+    return false;
+  }
+  const tipo = TIPI_DOCUMENTO[req.body.tipo] ? req.body.tipo : 'altro';
+  const scadenza = /^\d{4}-\d{2}-\d{2}$/.test(String(req.body.scadenza || '')) ? req.body.scadenza : null;
+  await pool.query(
+    `insert into documenti (user_id, tipo, nome, mime, peso, dati, scadenza, nota, caricato_da)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+    [
+      userId,
+      tipo,
+      String(req.file.originalname || 'documento').slice(0, 160),
+      req.file.mimetype,
+      req.file.size,
+      req.file.buffer,
+      scadenza,
+      String(req.body.nota || '').trim().slice(0, 300),
+      chi
+    ]
+  );
+  avvisa(req, 'Documento caricato.');
+  return true;
+}
+
+app.post(
+  '/area/tutor/documenti',
+  soloTutor,
+  riceviImmagine,
+  wrap(async (req, res) => {
+    await salvaDocumento(req, res, req.utente.id, 'tutor');
+    res.redirect('/area/tutor');
+  })
+);
+
+app.post(
+  '/area/coordinamento/tutor/:id/documenti',
+  soloAdmin,
+  riceviImmagine,
+  wrap(async (req, res) => {
+    await salvaDocumento(req, res, req.params.id, 'coordinamento');
+    res.redirect(`/area/coordinamento/tutor/${req.params.id}`);
+  })
+);
+
+app.post(
+  '/area/coordinamento/documenti/:id/elimina',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('delete from documenti where id = $1 returning user_id', [req.params.id]);
+    avvisa(req, 'Documento eliminato.');
+    res.redirect(rows[0] ? `/area/coordinamento/tutor/${rows[0].user_id}` : '/area/coordinamento');
+  })
+);
+
+app.post(
+  '/area/coordinamento/documenti/:id/scadenza',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const scadenza = /^\d{4}-\d{2}-\d{2}$/.test(String(req.body.scadenza || '')) ? req.body.scadenza : null;
+    const { rows } = await pool.query('update documenti set scadenza = $1 where id = $2 returning user_id', [
+      scadenza,
+      req.params.id
+    ]);
+    avvisa(req, scadenza ? 'Scadenza aggiornata.' : 'Scadenza tolta.');
+    res.redirect(rows[0] ? `/area/coordinamento/tutor/${rows[0].user_id}` : '/area/coordinamento');
+  })
+);
+
 app.get('/robots.txt', (req, res) => {
   res.type('text/plain').send(
     ['User-agent: *', 'Disallow: /area/', 'Disallow: /chat/', 'Disallow: /documenti/', 'Disallow: /stato', '', `Sitemap: ${res.locals.indirizzo}/sitemap.xml`].join('\n')
@@ -2729,6 +2893,46 @@ app.get(
         .join('\n') +
       '\n</urlset>';
     res.type('application/xml').send(xml);
+  })
+);
+
+app.post(
+  '/area/coordinamento/tutor/:id/messaggio',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const t = await tutorSingolo(req.params.id);
+    if (!t) return res.redirect('/area/coordinamento');
+    const c = await conversazioneInterna(t.id);
+    const m = await scriviMessaggio(c, 'coordinamento', req.utente.nome || 'Coordinamento', req.body.testo);
+    if (m) {
+      await invia({
+        a: t.email,
+        oggetto: 'Messaggio dal coordinamento',
+        titolo: 'Ti abbiamo scritto',
+        testo: `Ciao ${t.nome},\n\n"${m.testo}"`,
+        azione: { testo: 'Rispondi dalla tua pagina', link: urlAssoluto(req, '/area/tutor') }
+      });
+    }
+    res.redirect(`/area/coordinamento/tutor/${t.id}#conversazione`);
+  })
+);
+
+app.post(
+  '/area/tutor/messaggio',
+  soloTutor,
+  wrap(async (req, res) => {
+    const c = await conversazioneInterna(req.utente.id);
+    const m = await scriviMessaggio(c, 'tutor', req.utente.nome, req.body.testo);
+    if (m) {
+      await avvisaAdmin({
+        oggetto: `Messaggio da ${req.utente.nome}`,
+        titolo: 'Messaggio da una collaboratrice',
+        testo: `"${m.testo}"`,
+        azione: { testo: 'Apri la sua scheda', link: urlAssoluto(req, `/area/coordinamento/tutor/${req.utente.id}`) },
+        rispondiA: req.utente.email
+      });
+    }
+    res.redirect('/area/tutor#conversazione');
   })
 );
 

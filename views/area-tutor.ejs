@@ -40,6 +40,14 @@
       </div>
     </div>
 
+    <h2 style="margin-top:2rem">Parla con il coordinamento</h2>
+    <p class="testo">Conversazione privata con me: qui mi scrivi per cambi di orario, dubbi o problemi. Le famiglie non la vedono.</p>
+    <%- include('partials/chat-interna', { interna: interna, chi: 'tutor', azione: '/area/tutor/messaggio' }) %>
+
+    <h2 style="margin-top:2rem">I miei documenti</h2>
+    <p class="testo">Carica qui documento d'identità, contratto firmato e certificato penale. Li vediamo solo io e te: le famiglie non li vedono mai.</p>
+    <%- include('partials/documenti', { documenti: documenti, gestisci: false, azione: '/area/tutor/documenti' }) %>
+
     <h2 style="margin-top:2rem">I miei dati</h2>
     <form class="modulo larga" method="post" action="/area/tutor/profilo">
       <%- include('partials/campi-tutor', { t: t }) %>

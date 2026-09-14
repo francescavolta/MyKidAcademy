@@ -128,6 +128,22 @@ create table if not exists messaggi (
 );
 create index if not exists messaggi_conversazione on messaggi (conversazione_id, created_at asc);
 
+create table if not exists documenti (
+  id         serial primary key,
+  user_id    integer not null references users(id) on delete cascade,
+  tipo       text not null default 'altro',
+  nome       text not null default '',
+  mime       text not null default 'application/pdf',
+  peso       integer not null default 0,
+  dati       bytea not null,
+  scadenza   date,
+  nota       text not null default '',
+  caricato_da text not null default 'tutor',
+  created_at timestamptz not null default now()
+);
+create index if not exists documenti_user on documenti (user_id);
+create index if not exists documenti_scadenza on documenti (scadenza);
+
 create table if not exists visite (
   id        serial primary key,
   giorno    date not null default current_date,
@@ -191,6 +207,7 @@ alter table users add column if not exists immagine_id integer references immagi
 alter table richieste add column if not exists disponibilita_id integer references disponibilita(id) on delete set null;
 alter table conversazioni add column if not exists richiesta_id integer references richieste(id) on delete set null;
 alter table users add column if not exists tariffa_max numeric(6,2);
+alter table conversazioni add column if not exists tipo text not null default 'famiglia';
 `;
 
 async function initDb() {
