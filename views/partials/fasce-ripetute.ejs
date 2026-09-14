@@ -1,0 +1,44 @@
+<details class="ripetute">
+  <summary>Aggiungi più fasce insieme (ogni settimana)</summary>
+  <p class="testo">Invece di inserire giorno per giorno: scegli l'orario, i giorni della settimana e il periodo. Le fasce che esistono già non vengono toccate.</p>
+
+  <form class="modulo" method="post" action="<%= azione %>">
+    <div class="doppia">
+      <div>
+        <label for="rip_inizio">Dalle</label>
+        <input id="rip_inizio" name="ora_inizio" type="time" required>
+      </div>
+      <div>
+        <label for="rip_fine">Alle</label>
+        <input id="rip_fine" name="ora_fine" type="time" required>
+      </div>
+    </div>
+
+    <fieldset>
+      <legend>In quali giorni</legend>
+      <div class="caselle">
+        <% [[1,'lunedì'],[2,'martedì'],[3,'mercoledì'],[4,'giovedì'],[5,'venerdì'],[6,'sabato'],[7,'domenica']].forEach(function (g) { %>
+          <label><input type="checkbox" name="giorni" value="<%= g[0] %>"> <%= g[1] %></label>
+        <% }) %>
+      </div>
+    </fieldset>
+
+    <div class="doppia">
+      <div>
+        <label for="rip_dal">Dal giorno</label>
+        <input id="rip_dal" name="dal" type="date" required>
+      </div>
+      <div>
+        <label for="rip_al">Fino al giorno <span class="aiuto">Al massimo otto mesi avanti.</span></label>
+        <input id="rip_al" name="al" type="date" required>
+      </div>
+    </div>
+
+    <div>
+      <label for="rip_nota">Nota <span class="aiuto">Facoltativa, finisce su tutte le fasce create.</span></label>
+      <input id="rip_nota" name="nota" type="text" maxlength="140" placeholder="solo online">
+    </div>
+
+    <div><button class="bottone" type="submit">Crea le fasce</button></div>
+  </form>
+</details>

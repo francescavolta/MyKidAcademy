@@ -55,7 +55,9 @@
     <h2>Il mio calendario</h2>
     <%- include('partials/calendario', { mese: mese, base: '/area/tutor' }) %>
 
-    <p class="testo" style="margin-top:1.5rem">Aggiungi le fasce in cui sei libera. Il coordinamento può modificarle o segnarle come occupate.</p>
+    <%- include('partials/fasce-ripetute', { azione: '/area/tutor/disponibilita-ripetute' }) %>
+
+    <p class="testo" style="margin-top:1.5rem">Oppure aggiungi una fascia singola. Le fasce in cui sei libera. Il coordinamento può modificarle o segnarle come occupate.</p>
     <form class="modulo" method="post" action="/area/tutor/disponibilita">
       <div class="doppia">
         <div>

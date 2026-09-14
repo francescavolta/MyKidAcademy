@@ -103,6 +103,12 @@ Quando il coordinamento porta una richiesta a **confermata**, se alla richiesta 
 
 **Agenda della settimana** (`/area/coordinamento/agenda`): tutte le ragazze approvate in righe, i sette giorni in colonne, le fasce nelle celle con verde/rosso, oggi evidenziato, frecce per cambiare settimana. Serve a rispondere a "chi ho libero giovedì alle 15" senza aprire le schede una a una.
 
+## Fasce ripetute e lezioni settimanali
+
+**Fasce ripetute** (`generaDate` + `creaFascia`): dalla propria area la tutor, e dalla scheda il coordinamento, aprono "Aggiungi più fasce insieme" e indicano orario, giorni della settimana e periodo. Il sistema crea tutte le date corrispondenti, saltando quelle già presenti (stessa persona, stesso giorno, stessa ora). Tetti: otto mesi di periodo e 200 fasce per volta.
+
+**Lezione settimanale**: nella colonna Fascia della tabella richieste, quando la richiesta ha una fascia collegata, compare "ogni settimana per N sett. → Blocca". Ripete quella fascia nelle settimane successive, segnandola occupata con la nota "Famiglia <nome>": se il giorno esiste già libero lo occupa, altrimenti crea la fascia. Le fasce già occupate da altri non vengono toccate.
+
 ## Bottoni del pannello
 
 L'elenco dei possibili bottoni sta in `SCORCIATOIE` (`server.js`); quali mostrare e in che ordine è salvato nell'impostazione `scorciatoie` (una lista di id separati da virgola, gruppo `nascosto` quindi non compare nella pagina Aspetto). Si gestisce da `/area/coordinamento/scorciatoie`, raggiungibile dall'ingranaggio in fondo alla fila dei bottoni: frecce per spostare, Nascondi/Mostra, e "Rimetti l'ordine di partenza". Gli id sconosciuti vengono ignorati e le voci aggiunte in futuro compaiono fra i nascosti, quindi aggiornare il codice non rompe mai la configurazione salvata.

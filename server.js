@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
 // Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
-const VERSIONE = '14 settembre 2026 (l) · bottoni del pannello ordinabili';
+const VERSIONE = '15 settembre 2026 · fasce ripetute e lezioni settimanali';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
@@ -58,6 +58,7 @@ const FILE_ATTESI = [
   'views/partials/consenso.ejs',
   'views/partials/documenti.ejs',
   'views/partials/faccia.ejs',
+  'views/partials/fasce-ripetute.ejs',
   'views/partials/piede.ejs',
   'views/partials/referenze.ejs',
   'views/partials/sezione.ejs',
@@ -825,6 +826,39 @@ async function tutorPubblici({ mansione, zona, giorno } = {}) {
 async function tutorSingolo(id) {
   const { rows } = await pool.query(`${SELECT_TUTOR} where u.id = $1 group by u.id`, [id]);
   return rows[0] || null;
+}
+
+// ---- fasce ripetute ----------------------------------------------------
+// Tutte le date fra due giorni che cadono nei giorni della settimana scelti.
+function generaDate(dal, al, giorni, massimo = 200) {
+  const inizio = new Date(dal + 'T00:00:00Z');
+  const fine = new Date(al + 'T00:00:00Z');
+  const date = [];
+  if (isNaN(inizio) || isNaN(fine) || fine < inizio) return date;
+  const limite = new Date(inizio);
+  limite.setUTCMonth(limite.getUTCMonth() + 8); // non oltre otto mesi per volta
+  const vero = fine > limite ? limite : fine;
+
+  for (let d = new Date(inizio); d <= vero && date.length < massimo; d.setUTCDate(d.getUTCDate() + 1)) {
+    const isodow = d.getUTCDay() === 0 ? 7 : d.getUTCDay();
+    if (giorni.includes(isodow)) date.push(d.toISOString().slice(0, 10));
+  }
+  return date;
+}
+
+// Non creo due volte la stessa fascia: stessa persona, stesso giorno, stessa ora.
+async function creaFascia(userId, data, oraInizio, oraFine, { stato = 'libero', nota = '', creataDa = 'tutor' } = {}) {
+  const { rowCount } = await pool.query(
+    'select 1 from disponibilita where user_id = $1 and data = $2 and ora_inizio = $3',
+    [userId, data, oraInizio]
+  );
+  if (rowCount) return false;
+  await pool.query(
+    `insert into disponibilita (user_id, data, ora_inizio, ora_fine, stato, nota, creata_da)
+     values ($1,$2,$3,$4,$5,$6,$7)`,
+    [userId, data, oraInizio, oraFine, stato, nota, creataDa]
+  );
+  return true;
 }
 
 async function disponibilitaFuture(userId) {
@@ -3174,6 +3208,113 @@ app.post(
     );
     await impostazioni(true);
     res.redirect('/area/coordinamento/scorciatoie');
+  })
+);
+
+async function aggiungiRipetute(req, userId, creataDa) {
+  const { ora_inizio, ora_fine, dal, al, nota } = req.body;
+  const giorni = []
+    .concat(req.body.giorni || [])
+    .map(Number)
+    .filter((g) => g >= 1 && g <= 7);
+
+  if (!ora_inizio || !ora_fine || ora_fine <= ora_inizio) {
+    avvisa(req, 'Indica un orario di inizio e una fine successiva.', 'errore');
+    return;
+  }
+  if (!giorni.length) {
+    avvisa(req, 'Scegli almeno un giorno della settimana.', 'errore');
+    return;
+  }
+  if (!dal || !al) {
+    avvisa(req, 'Indica da che giorno a che giorno ripetere.', 'errore');
+    return;
+  }
+
+  const date = generaDate(dal, al, giorni);
+  if (!date.length) {
+    avvisa(req, 'In quel periodo non cade nessuno dei giorni che hai scelto.', 'errore');
+    return;
+  }
+
+  let create = 0;
+  for (const d of date) {
+    if (await creaFascia(userId, d, ora_inizio, ora_fine, { nota: String(nota || '').trim().slice(0, 140), creataDa })) create++;
+  }
+  const saltate = date.length - create;
+  avvisa(
+    req,
+    `Aggiunte ${create} fasce.` + (saltate ? ` ${saltate} c'erano già e le ho lasciate stare.` : '')
+  );
+}
+
+app.post(
+  '/area/tutor/disponibilita-ripetute',
+  soloTutor,
+  wrap(async (req, res) => {
+    await aggiungiRipetute(req, req.utente.id, 'tutor');
+    res.redirect('/area/tutor');
+  })
+);
+
+app.post(
+  '/area/coordinamento/tutor/:id/disponibilita-ripetute',
+  soloAdmin,
+  wrap(async (req, res) => {
+    await aggiungiRipetute(req, req.params.id, 'coordinamento');
+    res.redirect(`/area/coordinamento/tutor/${req.params.id}`);
+  })
+);
+
+// Lezione settimanale: occupo la stessa fascia per N settimane di fila.
+app.post(
+  '/area/coordinamento/richieste/:id/ripeti',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const settimane = Math.min(26, Math.max(1, parseInt(req.body.settimane, 10) || 0));
+    const { rows } = await pool.query('select * from richieste where id = $1', [req.params.id]);
+    const r = rows[0];
+    if (!r || !r.disponibilita_id) {
+      avvisa(req, 'Prima collega una fascia a questa richiesta, poi la posso ripetere.', 'errore');
+      return res.redirect('/area/coordinamento');
+    }
+
+    const { rows: fasce } = await pool.query('select * from disponibilita where id = $1', [r.disponibilita_id]);
+    const f = fasce[0];
+    if (!f) {
+      avvisa(req, 'La fascia collegata non esiste più.', 'errore');
+      return res.redirect('/area/coordinamento');
+    }
+
+    const etichetta = `Famiglia ${r.genitore_nome}`;
+    let create = 0;
+    let occupate = 0;
+    for (let i = 1; i <= settimane; i++) {
+      const d = new Date(f.data);
+      d.setUTCDate(d.getUTCDate() + 7 * i);
+      const giorno = d.toISOString().slice(0, 10);
+
+      const { rows: esiste } = await pool.query(
+        'select * from disponibilita where user_id = $1 and data = $2 and ora_inizio = $3',
+        [f.user_id, giorno, f.ora_inizio]
+      );
+      if (esiste[0]) {
+        if (esiste[0].stato === 'libero') {
+          await pool.query("update disponibilita set stato = 'occupato', nota = $1 where id = $2", [etichetta, esiste[0].id]);
+          occupate++;
+        }
+      } else {
+        await creaFascia(f.user_id, giorno, f.ora_inizio, f.ora_fine, {
+          stato: 'occupato',
+          nota: etichetta,
+          creataDa: 'coordinamento'
+        });
+        create++;
+      }
+    }
+
+    avvisa(req, `Lezione settimanale segnata per ${settimane} settimane: ${create} fasce nuove, ${occupate} già libere ora occupate.`);
+    res.redirect('/area/coordinamento');
   })
 );
 
