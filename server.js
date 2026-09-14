@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
 // Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
-const VERSIONE = '14 settembre 2026 (i) · galleria e WhatsApp corretto';
+const VERSIONE = '14 settembre 2026 (l) · bottoni del pannello ordinabili';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
@@ -37,6 +37,7 @@ const FILE_ATTESI = [
   'views/admin-immagini.ejs',
   'views/admin-pagina.ejs',
   'views/admin-pagine.ejs',
+  'views/admin-scorciatoie.ejs',
   'views/admin-sezione.ejs',
   'views/admin-statistiche.ejs',
   'views/admin-tutor.ejs',
@@ -189,6 +190,7 @@ const SCALE = { normale: '17px', grande: '19px' };
 const IMPAGINAZIONI_BLOG = { elenco: 'Elenco semplice', schede: 'Schede con immagine', griglia: 'Griglia di riquadri' };
 
 const CAMPI_ASPETTO = [
+  { chiave: 'scorciatoie', gruppo: 'nascosto', label: 'Ordine dei bottoni', tipo: 'testo', def: '' },
   { chiave: 'nome_sito', gruppo: 'Testi', label: 'Nome del sito', tipo: 'testo', def: 'MyKidAcademy' },
   { chiave: 'titolo_home', gruppo: 'Home', label: 'Titolo grande in home', tipo: 'area', def: 'Una persona di fiducia\nper quello che serve a casa.', aiuto: 'Dove vai a capo tu, va a capo anche il sito.' },
   { chiave: 'sottotitolo_home', gruppo: 'Home', label: 'Frase sotto il titolo', tipo: 'area', def: 'Selezioniamo noi le ragazze che collaborano con noi, una per una. Tu scegli di cosa hai bisogno, guardi chi è libera e ci pensiamo noi a organizzare.' },
@@ -227,6 +229,34 @@ const CAMPI_ASPETTO = [
   { chiave: 'blog_copertina_grande', gruppo: 'Blog', label: 'Copertina a tutta larghezza nell\'articolo', tipo: 'scelta', opzioni: { si: 'Sì', no: 'No, piccola' }, def: 'si' },
   { chiave: 'colore_blog_sfondo', gruppo: 'Blog', label: 'Sfondo delle pagine del blog', tipo: 'colore', def: '#fff8fa' }
 ];
+
+// I bottoni in cima all'area coordinamento. L'ordine e quali mostrare
+// stanno nelle impostazioni, così li sistemi senza toccare il codice.
+const SCORCIATOIE = {
+  messaggi: { nome: 'Messaggi', link: '/area/coordinamento/messaggi', contatore: 'messaggi' },
+  agenda: { nome: 'Agenda della settimana', link: '/area/coordinamento/agenda' },
+  statistiche: { nome: 'Statistiche', link: '/area/coordinamento/statistiche' },
+  home: { nome: 'Home', link: '/area/coordinamento/home' },
+  blog: { nome: 'Blog', link: '/area/coordinamento/blog' },
+  pagine: { nome: 'Pagine', link: '/area/coordinamento/pagine' },
+  immagini: { nome: 'Immagini', link: '/area/coordinamento/immagini' },
+  aspetto: { nome: 'Aspetto del sito', link: '/area/coordinamento/aspetto' },
+  referenze: { nome: 'Referenze pubbliche', link: '/referenze' },
+  sito: { nome: 'Guarda il sito', link: '/' }
+};
+const SCORCIATOIE_DEFAULT = 'messaggi,agenda,statistiche,home,blog,pagine,immagini,aspetto';
+
+// Dall'impostazione salvata ricavo l'elenco da mostrare, ignorando gli id
+// che non esistono più e mettendo in fondo quelli aggiunti dopo.
+function scorciatoieDa(cfg) {
+  const scelti = String(cfg.scorciatoie || SCORCIATOIE_DEFAULT)
+    .split(',')
+    .map((x) => x.trim())
+    .filter((x) => SCORCIATOIE[x]);
+  const visti = new Set(scelti);
+  const nascosti = Object.keys(SCORCIATOIE).filter((k) => !visti.has(k));
+  return { visibili: scelti, nascosti };
+}
 
 const GRUPPI_ASPETTO = ['Testi', 'Home', 'Caratteri', 'Colori', 'Forme', 'Blog', 'Condivisione', 'Privacy'];
 
@@ -618,6 +648,8 @@ app.use(
     res.locals.contrasto = contrasto;
     res.locals.tariffaTesto = tariffaTesto;
     res.locals.waNumero = waNumero;
+    res.locals.SCORCIATOIE = SCORCIATOIE;
+    res.locals.scorciatoie = scorciatoieDa(cfg);
     res.locals.VERSIONE = VERSIONE;
     res.locals.RAGGI = RAGGI;
     res.locals.COLORI_TESTO = COLORI_TESTO;
@@ -3097,6 +3129,51 @@ app.get(
       soloTutor,
       perVoto
     });
+  })
+);
+
+app.get(
+  '/area/coordinamento/scorciatoie',
+  soloAdmin,
+  wrap(async (req, res) => {
+    res.render('admin-scorciatoie', { titolo: 'Bottoni del pannello' });
+  })
+);
+
+app.post(
+  '/area/coordinamento/scorciatoie',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const cfg = await impostazioni();
+    const { visibili } = scorciatoieDa(cfg);
+    let nuovo = visibili.slice();
+
+    const id = String(req.body.id || '');
+    const azione = req.body.azione;
+
+    if (azione === 'ripristina') {
+      nuovo = SCORCIATOIE_DEFAULT.split(',');
+    } else if (SCORCIATOIE[id]) {
+      const i = nuovo.indexOf(id);
+      if (azione === 'mostra' && i === -1) nuovo.push(id);
+      if (azione === 'nascondi' && i !== -1) nuovo.splice(i, 1);
+      if (azione === 'su' && i > 0) {
+        nuovo[i] = nuovo[i - 1];
+        nuovo[i - 1] = id;
+      }
+      if (azione === 'giu' && i !== -1 && i < nuovo.length - 1) {
+        nuovo[i] = nuovo[i + 1];
+        nuovo[i + 1] = id;
+      }
+    }
+
+    await pool.query(
+      `insert into impostazioni (chiave, valore) values ('scorciatoie', $1)
+       on conflict (chiave) do update set valore = excluded.valore`,
+      [nuovo.join(',')]
+    );
+    await impostazioni(true);
+    res.redirect('/area/coordinamento/scorciatoie');
   })
 );
 

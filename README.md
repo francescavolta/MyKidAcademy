@@ -103,6 +103,10 @@ Quando il coordinamento porta una richiesta a **confermata**, se alla richiesta 
 
 **Agenda della settimana** (`/area/coordinamento/agenda`): tutte le ragazze approvate in righe, i sette giorni in colonne, le fasce nelle celle con verde/rosso, oggi evidenziato, frecce per cambiare settimana. Serve a rispondere a "chi ho libero giovedì alle 15" senza aprire le schede una a una.
 
+## Bottoni del pannello
+
+L'elenco dei possibili bottoni sta in `SCORCIATOIE` (`server.js`); quali mostrare e in che ordine è salvato nell'impostazione `scorciatoie` (una lista di id separati da virgola, gruppo `nascosto` quindi non compare nella pagina Aspetto). Si gestisce da `/area/coordinamento/scorciatoie`, raggiungibile dall'ingranaggio in fondo alla fila dei bottoni: frecce per spostare, Nascondi/Mostra, e "Rimetti l'ordine di partenza". Gli id sconosciuti vengono ignorati e le voci aggiunte in futuro compaiono fra i nascosti, quindi aggiornare il codice non rompe mai la configurazione salvata.
+
 ## Galleria e WhatsApp
 
 **Galleria**: tipo di blocco per la home con più immagini (tabella `sezione_immagini`, con ordine). Nella scheda del blocco si spuntano le foto dalla libreria; l'ordine è quello mostrato, e le già scelte salgono in cima. La misura del blocco (piccola/media/grande/piena) decide quante colonne ha la griglia.

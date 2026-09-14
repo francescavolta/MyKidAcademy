@@ -1,0 +1,71 @@
+<%- include('partials/testa') %>
+
+<p style="margin-top:1.5rem"><a href="/area/coordinamento">← Coordinamento</a></p>
+<h1>Bottoni del pannello</h1>
+<p class="guida">Decidi quali bottoni vedere in cima all'area coordinamento e in che ordine. Nascondere un bottone non toglie la funzione: la pagina resta raggiungibile dal suo indirizzo.</p>
+
+<h2>Quelli che vedi</h2>
+<% if (scorciatoie.visibili.length === 0) { %>
+  <div class="vuoto"><p>Nessun bottone. Aggiungine qualcuno qui sotto.</p></div>
+<% } else { %>
+  <ul class="blocchi">
+    <% scorciatoie.visibili.forEach(function (id, i) { %>
+      <li>
+        <div class="blocchi-testa">
+          <div>
+            <h3><%= SCORCIATOIE[id].nome %></h3>
+            <span class="data"><%= SCORCIATOIE[id].link %></span>
+          </div>
+          <div class="riga-azioni">
+            <form method="post" action="/area/coordinamento/scorciatoie">
+              <input type="hidden" name="id" value="<%= id %>">
+              <input type="hidden" name="azione" value="su">
+              <button class="bottone piccolo chiaro" type="submit" <%- i === 0 ? 'disabled' : '' %> title="Sposta su">↑</button>
+            </form>
+            <form method="post" action="/area/coordinamento/scorciatoie">
+              <input type="hidden" name="id" value="<%= id %>">
+              <input type="hidden" name="azione" value="giu">
+              <button class="bottone piccolo chiaro" type="submit" <%- i === scorciatoie.visibili.length - 1 ? 'disabled' : '' %> title="Sposta giù">↓</button>
+            </form>
+            <form method="post" action="/area/coordinamento/scorciatoie">
+              <input type="hidden" name="id" value="<%= id %>">
+              <input type="hidden" name="azione" value="nascondi">
+              <button class="bottone piccolo chiaro" type="submit">Nascondi</button>
+            </form>
+          </div>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<% if (scorciatoie.nascosti.length) { %>
+  <h2 style="margin-top:2.5rem">Quelli nascosti</h2>
+  <ul class="blocchi">
+    <% scorciatoie.nascosti.forEach(function (id) { %>
+      <li class="blocchi--spento">
+        <div class="blocchi-testa">
+          <div>
+            <h3><%= SCORCIATOIE[id].nome %></h3>
+            <span class="data"><%= SCORCIATOIE[id].link %></span>
+          </div>
+          <div class="riga-azioni">
+            <form method="post" action="/area/coordinamento/scorciatoie">
+              <input type="hidden" name="id" value="<%= id %>">
+              <input type="hidden" name="azione" value="mostra">
+              <button class="bottone piccolo" type="submit">Mostra</button>
+            </form>
+          </div>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+
+<form method="post" action="/area/coordinamento/scorciatoie" style="margin-top:2.5rem"
+      onsubmit="return confirm('Rimettere i bottoni come all\'inizio?')">
+  <input type="hidden" name="azione" value="ripristina">
+  <button class="link-testo" type="submit">Rimetti l'ordine di partenza</button>
+</form>
+
+<%- include('partials/piede') %>
