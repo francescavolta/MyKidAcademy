@@ -39,6 +39,23 @@
     <p style="margin-top:1.3rem"><a class="bottone chiaro" href="/tutor">Vedi tutte</a></p>
   <% } %>
 
+<% } else if (s.tipo === 'referenze') { %>
+  <% if (s.titolo) { %><h2><%= s.titolo %></h2><% } %>
+  <% if (referenzeHome.length === 0) { %>
+    <div class="vuoto"><p>Nessuna referenza pubblicata per ora.</p></div>
+  <% } else { %>
+    <ul class="muro muro--stretto">
+      <% referenzeHome.forEach(function (r) { %>
+        <li>
+          <span class="stelle"><%= stelline(r.stelle) %></span>
+          <blockquote><%= r.commento.length > 180 ? r.commento.slice(0, 180) + '…' : r.commento %></blockquote>
+          <div class="data"><%= r.autore || 'Una famiglia' %> · su <a href="/tutor/<%= r.tutor_id %>"><%= r.tutor_nome %></a></div>
+        </li>
+      <% }) %>
+    </ul>
+    <p style="margin-top:1.2rem"><a class="bottone chiaro" href="/referenze">Leggi tutte le referenze</a></p>
+  <% } %>
+
 <% } else if (s.tipo === 'articoli') { %>
   <% if (s.titolo) { %><h2><%= s.titolo %></h2><% } %>
   <% if (articoli.length === 0) { %>

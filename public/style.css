@@ -870,3 +870,41 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
 
 .chat--interna { max-width: none; margin-top: 1rem; }
 .chat--interna .bolla { max-width: 92%; }
+
+/* ---------- muro delle referenze ---------- */
+
+.muro {
+  list-style: none;
+  padding: 0;
+  margin: 2rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1.1rem;
+}
+.muro--stretto { grid-template-columns: 1fr; margin-top: 1rem; }
+
+.muro li {
+  border: 1px solid var(--velo);
+  border-radius: var(--raggio);
+  background: #fff;
+  padding: 1.1rem 1.2rem;
+  box-shadow: var(--ombra);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.muro-testa { display: flex; align-items: center; gap: 0.7rem; }
+.muro-testa > div { margin-right: auto; }
+.muro-testa a { text-decoration: none; }
+.muro-testa a:hover { text-decoration: underline; }
+
+.muro blockquote {
+  margin: 0;
+  font-family: var(--titoli);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--inchiostro);
+}
+.muro blockquote::before { content: '“'; color: var(--rosa); font-size: 1.6rem; line-height: 0; vertical-align: -0.2em; margin-right: 0.15rem; }
+.muro .data { margin-top: auto; }

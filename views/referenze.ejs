@@ -1,0 +1,82 @@
+<%- include('partials/testa') %>
+
+<h1 style="margin-top:2rem">Cosa dicono le famiglie</h1>
+<p class="guida">Sono referenze scritte dai genitori che hanno lavorato con noi. Le leggiamo una per una prima di pubblicarle: niente recensioni scritte da noi, niente voti comprati.</p>
+
+<% if (numeri.totale === 0) { %>
+  <div class="vuoto" style="margin-top:1.5rem">
+    <p>Non ci sono ancora referenze pubblicate. Se hai lavorato con una delle nostre ragazze, puoi lasciarne una dalla sua pagina.</p>
+    <p><a class="bottone" href="/tutor">Vedi le ragazze</a></p>
+  </div>
+<% } else { %>
+
+  <ul class="sommario">
+    <li><b><%= numeri.media %></b> stelle di media</li>
+    <li><b><%= numeri.totale %></b> referenze</li>
+    <li><b><%= numeri.ragazze %></b> ragazze recensite</li>
+  </ul>
+
+  <form class="modulo larga" method="get" action="/referenze" style="margin-top:1.5rem">
+    <div class="doppia">
+      <div>
+        <label for="tutor">Su chi</label>
+        <select id="tutor" name="tutor" onchange="this.form.submit()">
+          <option value="">Tutte le ragazze</option>
+          <% elencoTutor.forEach(function (t) { %>
+            <option value="<%= t.id %>" <%- String(soloTutor) === String(t.id) ? 'selected' : '' %>><%= t.nome %> (<%= t.quante %>)</option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label for="ordine">In che ordine</label>
+        <select id="ordine" name="ordine" onchange="this.form.submit()">
+          <option value="" <%- perVoto ? '' : 'selected' %>>Prima le più recenti</option>
+          <option value="voto" <%- perVoto ? 'selected' : '' %>>Prima le migliori</option>
+        </select>
+      </div>
+      <div style="align-self:end"><noscript><button class="bottone" type="submit">Filtra</button></noscript></div>
+    </div>
+  </form>
+
+  <% if (referenze.length === 0) { %>
+    <div class="vuoto" style="margin-top:1.5rem"><p>Nessuna referenza per questa ragazza.</p></div>
+  <% } else { %>
+    <ul class="muro">
+      <% referenze.forEach(function (r) { %>
+        <li>
+          <div class="muro-testa">
+            <% if (r.tutor_immagine) { %>
+              <img class="faccia" src="/immagini/<%= r.tutor_immagine %>" alt="Foto di <%= r.tutor_nome %>" loading="lazy">
+            <% } else { %>
+              <div class="monogramma" aria-hidden="true"><%= iniziali(r.tutor_nome) %></div>
+            <% } %>
+            <div>
+              <a href="/tutor/<%= r.tutor_id %>"><strong><%= r.tutor_nome %></strong></a>
+              <% if (r.tutor_zona) { %><div class="zona"><%= r.tutor_zona %></div><% } %>
+            </div>
+            <span class="stelle" aria-label="<%= r.stelle %> stelle su 5"><%= stelline(r.stelle) %></span>
+          </div>
+          <blockquote><%= r.commento %></blockquote>
+          <div class="data">
+            <%= r.autore || 'Una famiglia' %> · <%= new Date(r.created_at).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }) %>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+
+  <section class="due-colonne" style="margin-top:3rem">
+    <div>
+      <h2>Hai lavorato con una di loro?</h2>
+      <p>Scrivi una referenza dalla sua pagina: bastano due righe e sono quelle che aiutano la prossima mamma a scegliere.</p>
+      <p><a class="bottone chiaro" href="/tutor">Trova la sua pagina</a></p>
+    </div>
+    <div>
+      <h2>Come funzionano</h2>
+      <p>Le scrivono le famiglie, non le ragazze. Le leggiamo prima di pubblicarle, e pubblichiamo anche quelle con qualche stella in meno: servono a te per scegliere, non a noi per fare bella figura.</p>
+    </div>
+  </section>
+
+<% } %>
+
+<%- include('partials/piede') %>

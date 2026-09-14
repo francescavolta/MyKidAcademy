@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
 // Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
-const VERSIONE = '14 settembre 2026 (g) · esportazione schede ragazze';
+const VERSIONE = '14 settembre 2026 (h) · pagina referenze';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
@@ -64,7 +64,8 @@ const FILE_ATTESI = [
   'views/password-chiedi.ejs',
   'views/password-nuova.ejs',
   'views/privacy.ejs',
-  'views/profilo-tutor.ejs'
+  'views/profilo-tutor.ejs',
+  'views/referenze.ejs'
 ];
 
 function fileMancanti() {
@@ -177,6 +178,7 @@ const TIPI_SEZIONE = {
   immagine: { nome: 'Immagine', spiega: 'Una foto con didascalia facoltativa.', campi: ['immagine', 'dimensione', 'allineamento', 'titolo', 'larghezza'] },
   mansioni: { nome: 'Tessere dei servizi', spiega: 'I cinque riquadri: ripetizioni, compiti, babysitter, cucina, pulizia.', campi: ['titolo', 'dimensione_titolo', 'allineamento', 'larghezza'] },
   tutor: { nome: 'Schede delle tutor', spiega: 'Le prime sei ragazze approvate, con il link a tutte.', campi: ['titolo', 'dimensione_titolo', 'allineamento', 'larghezza'] },
+  referenze: { nome: 'Referenze delle famiglie', spiega: 'Le tre referenze più recenti, con il link a tutte.', campi: ['titolo', 'dimensione_titolo', 'allineamento', 'larghezza'] },
   articoli: { nome: 'Ultimi articoli del blog', spiega: 'I tre articoli pubblicati più recenti.', campi: ['titolo', 'dimensione_titolo', 'allineamento', 'larghezza'] },
   cta: { nome: 'Invito con pulsante', spiega: 'Titolo, testo e un pulsante che porta dove vuoi.', campi: ['titolo', 'dimensione_titolo', 'corpo', 'allineamento', 'testo_bottone', 'link_bottone', 'larghezza'] }
 };
@@ -992,6 +994,16 @@ app.get(
   wrap(async (req, res) => {
     const sezioni = await sezioniHome({ soloAttive: !res.locals.modifica });
     const tutor = sezioni.some((s) => s.tipo === 'tutor') ? (await tutorPubblici()).slice(0, 6) : [];
+    let referenzeHome = [];
+    if (sezioni.some((s) => s.tipo === 'referenze')) {
+      const r = await pool.query(
+        `select r.*, u.nome as tutor_nome, u.id as tutor_id
+         from referenze r join users u on u.id = r.tutor_id
+         where r.stato = 'pubblicata' and u.status = 'approvato'
+         order by r.created_at desc limit 3`
+      );
+      referenzeHome = r.rows;
+    }
     let articoli = [];
     if (sezioni.some((s) => s.tipo === 'articoli')) {
       const r = await pool.query('select * from articoli where pubblicato = true order by created_at desc limit 3');
@@ -1001,7 +1013,8 @@ app.get(
       titolo: res.locals.cfg.nome_sito,
       gruppi: raggruppaSezioni(sezioni),
       tutor,
-      articoli
+      articoli,
+      referenzeHome
     });
   })
 );
@@ -2858,6 +2871,7 @@ app.get(
     const voci = [
       { loc: '/', priorita: '1.0' },
       { loc: '/tutor', priorita: '0.9' },
+      { loc: '/referenze', priorita: '0.8' },
       { loc: '/blog', priorita: '0.7' },
       { loc: '/lavora-con-noi', priorita: '0.6' },
       { loc: '/privacy', priorita: '0.2' }
@@ -2982,6 +2996,54 @@ app.get(
     res.setHeader('Content-Disposition', `attachment; filename="ragazze-${new Date().toISOString().slice(0, 10)}.csv"`);
     res.setHeader('Cache-Control', 'private, no-store');
     res.send(csv);
+  })
+);
+
+app.get(
+  '/referenze',
+  wrap(async (req, res) => {
+    const perVoto = req.query.ordine === 'voto';
+    const soloTutor = /^\d+$/.test(String(req.query.tutor || '')) ? req.query.tutor : null;
+
+    const valori = [];
+    let filtro = "where r.stato = 'pubblicata' and u.status = 'approvato'";
+    if (soloTutor) {
+      valori.push(soloTutor);
+      filtro += ` and r.tutor_id = $${valori.length}`;
+    }
+
+    const { rows: referenze } = await pool.query(
+      `select r.*, u.nome as tutor_nome, u.zona as tutor_zona, u.immagine_id as tutor_immagine
+       from referenze r join users u on u.id = r.tutor_id
+       ${filtro}
+       order by ${perVoto ? 'r.stelle desc, r.created_at desc' : 'r.created_at desc'}
+       limit 100`,
+      valori
+    );
+
+    const { rows: numeri } = await pool.query(
+      `select count(*)::int as totale,
+              round(avg(r.stelle)::numeric, 1) as media,
+              count(distinct r.tutor_id)::int as ragazze
+       from referenze r join users u on u.id = r.tutor_id
+       where r.stato = 'pubblicata' and u.status = 'approvato'`
+    );
+
+    const { rows: elencoTutor } = await pool.query(
+      `select u.id, u.nome, count(r.id)::int as quante
+       from users u join referenze r on r.tutor_id = u.id and r.stato = 'pubblicata'
+       where u.status = 'approvato'
+       group by u.id order by u.nome asc`
+    );
+
+    res.render('referenze', {
+      titolo: 'Cosa dicono le famiglie',
+      referenze,
+      numeri: numeri[0] || { totale: 0, media: 0, ragazze: 0 },
+      elencoTutor,
+      soloTutor,
+      perVoto
+    });
   })
 );
 

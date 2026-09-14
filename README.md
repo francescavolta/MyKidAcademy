@@ -103,6 +103,14 @@ Quando il coordinamento porta una richiesta a **confermata**, se alla richiesta 
 
 **Agenda della settimana** (`/area/coordinamento/agenda`): tutte le ragazze approvate in righe, i sette giorni in colonne, le fasce nelle celle con verde/rosso, oggi evidenziato, frecce per cambiare settimana. Serve a rispondere a "chi ho libero giovedì alle 15" senza aprire le schede una a una.
 
+## Pagina pubblica delle referenze
+
+`/referenze` raccoglie tutte le referenze pubblicate delle tutor approvate: media stelle, totale, quante ragazze sono recensite, filtro per ragazza e ordinamento (più recenti o voto più alto). Voce nel menu, presente anche nella sitemap.
+
+C'è anche un tipo di blocco per la home, "Referenze delle famiglie": mostra le tre più recenti e il link alla pagina. Si aggiunge da Coordinamento → Home → Aggiungi blocco.
+
+Nota su Google: non ho messo i dati strutturati `AggregateRating`. Su recensioni raccolte e pubblicate dal sito stesso quel markup è a rischio penalizzazione, e le stelle nei risultati di ricerca non valgono il rischio.
+
 ## Chat interna con le collaboratrici
 
 Conversazione privata fra coordinamento e singola tutor: una sola per ragazza, creata al primo messaggio (`conversazioni.tipo = 'interna'`). Compare dentro la scheda della tutor lato coordinamento e dentro la sua area personale, non nella lista "Messaggi" — quella resta riservata alle conversazioni con le famiglie (`conversazioniPer` filtra `tipo = 'famiglia'`).

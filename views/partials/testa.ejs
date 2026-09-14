@@ -62,6 +62,7 @@
     <a class="marchio" href="/"><%= cfg.nome_sito %></a>
     <nav>
       <a href="/tutor" <%- percorso.startsWith('/tutor') ? 'aria-current="page"' : '' %>>Le nostre tutor</a>
+      <a href="/referenze" <%- percorso.startsWith('/referenze') ? 'aria-current="page"' : '' %>>Referenze</a>
       <a href="/blog" <%- percorso.startsWith('/blog') ? 'aria-current="page"' : '' %>>Blog</a>
       <% menuPagine.forEach(function (pg) { %>
         <a href="/pagina/<%= pg.slug %>" <%- percorso === '/pagina/' + pg.slug ? 'aria-current="page"' : '' %>><%= pg.titolo %></a>
