@@ -10,6 +10,14 @@
   <% } %>
 </p>
 
+<p class="guida">
+  <% if (archivio) { %>
+    Stai vedendo anche le conversazioni chiuse. <a href="<%= base %>">Mostra solo quelle aperte</a>
+  <% } else if (chiuse) { %>
+    <a href="<%= base %>?archivio=1">Mostra anche le <%= chiuse %> conversazioni chiuse</a>
+  <% } %>
+</p>
+
 <% if (conversazioni.length === 0) { %>
   <div class="vuoto"><p>Nessuna conversazione. Ne nasce una ogni volta che una famiglia manda una richiesta.</p></div>
 <% } else { %>

@@ -125,8 +125,24 @@
 
 <section>
   <h2>Richieste dei genitori</h2>
+  <p class="guida">
+    <% if (tutteLeRichieste) { %>
+      Stai vedendo tutte le richieste, archivio compreso. <a href="/area/coordinamento">Mostra solo quelle da seguire</a>
+    <% } else { %>
+      Qui ci sono solo le richieste nuove e in corso.
+      <% if (archiviate) { %><a href="/area/coordinamento?archivio=1">Mostra anche le <%= archiviate %> archiviate</a> (confermate e chiuse)<% } %>
+    <% } %>
+  </p>
   <% if (richieste.length === 0) { %>
-    <div class="vuoto"><p>Nessuna richiesta ancora. Arrivano dalle pagine delle ragazze.</p></div>
+    <div class="vuoto">
+      <p>
+        <% if (tutteLeRichieste || !archiviate) { %>
+          Nessuna richiesta ancora. Arrivano dalle pagine delle ragazze.
+        <% } else { %>
+          Niente da seguire in questo momento: le <%= archiviate %> richieste chiuse sono nell'archivio.
+        <% } %>
+      </p>
+    </div>
   <% } else { %>
     <div class="tabella-avvolgi">
       <table>

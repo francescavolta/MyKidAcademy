@@ -15,22 +15,54 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
 // Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
-const VERSIONE = '14 settembre 2026 (b) · statistiche e Google';
+const VERSIONE = '14 settembre 2026 (c) · archivio e sitemap';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
 const FILE_ATTESI = [
-  'db.js', 'mail.js', 'package.json', 'render.yaml',
-  'public/carica-immagine.js', 'public/editor.js', 'public/modifica-home.js', 'public/style.css',
-  'views/accedi.ejs', 'views/admin-agenda.ejs', 'views/admin-articolo.ejs', 'views/admin-aspetto.ejs',
-  'views/admin-blog.ejs', 'views/admin-home.ejs', 'views/admin-immagini.ejs', 'views/admin-pagina.ejs',
-  'views/admin-pagine.ejs', 'views/admin-sezione.ejs', 'views/admin-tutor.ejs', 'views/area-admin.ejs',
-  'views/area-tutor.ejs', 'views/articolo.ejs', 'views/blog.ejs', 'views/candidatura.ejs', 'views/chat.ejs',
-  'views/elenco.ejs', 'views/errore.ejs', 'views/home.ejs', 'views/messaggi-elenco.ejs', 'views/pagina.ejs',
-  'views/password-chiedi.ejs', 'views/password-nuova.ejs', 'views/privacy.ejs', 'views/profilo-tutor.ejs',
-  'views/partials/calendario.ejs', 'views/partials/campi-tutor.ejs', 'views/partials/consenso.ejs',
-  'views/partials/faccia.ejs', 'views/partials/piede.ejs', 'views/partials/referenze.ejs',
-  'views/partials/sezione.ejs', 'views/partials/testa.ejs'
+  'db.js',
+  'mail.js',
+  'package.json',
+  'public/carica-immagine.js',
+  'public/editor.js',
+  'public/modifica-home.js',
+  'public/style.css',
+  'render.yaml',
+  'views/accedi.ejs',
+  'views/admin-agenda.ejs',
+  'views/admin-articolo.ejs',
+  'views/admin-aspetto.ejs',
+  'views/admin-blog.ejs',
+  'views/admin-home.ejs',
+  'views/admin-immagini.ejs',
+  'views/admin-pagina.ejs',
+  'views/admin-pagine.ejs',
+  'views/admin-sezione.ejs',
+  'views/admin-statistiche.ejs',
+  'views/admin-tutor.ejs',
+  'views/area-admin.ejs',
+  'views/area-tutor.ejs',
+  'views/articolo.ejs',
+  'views/blog.ejs',
+  'views/candidatura.ejs',
+  'views/chat.ejs',
+  'views/elenco.ejs',
+  'views/errore.ejs',
+  'views/home.ejs',
+  'views/messaggi-elenco.ejs',
+  'views/pagina.ejs',
+  'views/partials/calendario.ejs',
+  'views/partials/campi-tutor.ejs',
+  'views/partials/consenso.ejs',
+  'views/partials/faccia.ejs',
+  'views/partials/piede.ejs',
+  'views/partials/referenze.ejs',
+  'views/partials/sezione.ejs',
+  'views/partials/testa.ejs',
+  'views/password-chiedi.ejs',
+  'views/password-nuova.ejs',
+  'views/privacy.ejs',
+  'views/profilo-tutor.ejs'
 ];
 
 function fileMancanti() {
@@ -818,8 +850,11 @@ async function segnaVisto(c, campo) {
 }
 
 // Conversazioni con almeno un messaggio non ancora letto da chi guarda.
-async function conversazioniPer({ tutorId, campoVisto }) {
-  const cond = tutorId ? 'where c.tutor_id = $1' : '';
+async function conversazioniPer({ tutorId, campoVisto, soloAperte = false }) {
+  const filtri = [];
+  if (tutorId) filtri.push('c.tutor_id = $1');
+  if (soloAperte) filtri.push('c.aperta = true');
+  const cond = filtri.length ? 'where ' + filtri.join(' and ') : '';
   const { rows } = await pool.query(
     `select c.*, u.nome as tutor_nome,
             (c.${campoVisto} is null or c.ultimo_messaggio > c.${campoVisto}) as da_leggere,
@@ -1380,9 +1415,16 @@ app.get(
   '/area/tutor/messaggi',
   soloTutor,
   wrap(async (req, res) => {
+    const archivio = req.query.archivio === '1';
+    const { rows: chiuse } = await pool.query(
+      'select count(*)::int as n from conversazioni where tutor_id = $1 and aperta = false',
+      [req.utente.id]
+    );
     res.render('messaggi-elenco', {
       titolo: 'Messaggi',
-      conversazioni: await conversazioniPer({ tutorId: req.utente.id, campoVisto: 'visto_tutor' }),
+      conversazioni: await conversazioniPer({ tutorId: req.utente.id, campoVisto: 'visto_tutor', soloAperte: !archivio }),
+      archivio,
+      chiuse: chiuse[0].n,
       base: '/area/tutor/messaggi'
     });
   })
@@ -1519,13 +1561,18 @@ app.get(
     const { rows: tutte } = await pool.query(
       `${SELECT_TUTOR} where u.role = 'tutor' group by u.id order by u.created_at desc`
     );
+    const tutteLeRichieste = req.query.archivio === '1';
     const { rows: richieste } = await pool.query(
       `select r.*, u.nome as tutor_nome,
               (select c.id from conversazioni c where c.richiesta_id = r.id) as conversazione_id
        from richieste r
        left join users u on u.id = r.tutor_id
+       ${tutteLeRichieste ? '' : "where r.stato in ('nuova', 'in_corso')"}
        order by (r.stato = 'nuova') desc, r.created_at desc
-       limit 100`
+       limit 200`
+    );
+    const { rows: archiviate } = await pool.query(
+      "select count(*)::int as n from richieste where stato in ('confermata', 'chiusa')"
     );
     const { rows: refAttesa } = await pool.query(
       `select r.*, u.nome as tutor_nome from referenze r
@@ -1546,6 +1593,8 @@ app.get(
     res.render('area-admin', {
       titolo: 'Coordinamento',
       messaggiNuovi: chatNuove[0].n,
+      tutteLeRichieste,
+      archiviate: archiviate[0].n,
       fasceLibere,
       refAttesa,
       inAttesa: tutte.filter((t) => t.status === 'in_attesa'),
@@ -2408,9 +2457,13 @@ app.get(
   '/area/coordinamento/messaggi',
   soloAdmin,
   wrap(async (req, res) => {
+    const archivio = req.query.archivio === '1';
+    const { rows: chiuse } = await pool.query('select count(*)::int as n from conversazioni where aperta = false');
     res.render('messaggi-elenco', {
       titolo: 'Messaggi',
-      conversazioni: await conversazioniPer({ campoVisto: 'visto_admin' }),
+      conversazioni: await conversazioniPer({ campoVisto: 'visto_admin', soloAperte: !archivio }),
+      archivio,
+      chiuse: chiuse[0].n,
       base: '/area/coordinamento/messaggi'
     });
   })
@@ -2639,6 +2692,45 @@ app.get(
   })
 );
 
+
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(
+    ['User-agent: *', 'Disallow: /area/', 'Disallow: /chat/', 'Disallow: /documenti/', 'Disallow: /stato', '', `Sitemap: ${res.locals.indirizzo}/sitemap.xml`].join('\n')
+  );
+});
+
+app.get(
+  '/sitemap.xml',
+  wrap(async (req, res) => {
+    const base = res.locals.indirizzo;
+    const voci = [
+      { loc: '/', priorita: '1.0' },
+      { loc: '/tutor', priorita: '0.9' },
+      { loc: '/blog', priorita: '0.7' },
+      { loc: '/lavora-con-noi', priorita: '0.6' },
+      { loc: '/privacy', priorita: '0.2' }
+    ];
+    const { rows: tutor } = await pool.query("select id from users where role = 'tutor' and status = 'approvato'");
+    tutor.forEach((t) => voci.push({ loc: `/tutor/${t.id}`, priorita: '0.8' }));
+    const { rows: articoli } = await pool.query('select slug, updated_at from articoli where pubblicato = true');
+    articoli.forEach((a) => voci.push({ loc: `/blog/${a.slug}`, priorita: '0.6', data: a.updated_at }));
+    const { rows: pagine } = await pool.query('select slug, updated_at from pagine where attiva = true');
+    pagine.forEach((pg) => voci.push({ loc: `/pagina/${pg.slug}`, priorita: '0.5', data: pg.updated_at }));
+
+    const xml =
+      '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+      voci
+        .map(
+          (v) =>
+            `  <url><loc>${base}${v.loc}</loc>` +
+            (v.data ? `<lastmod>${new Date(v.data).toISOString().slice(0, 10)}</lastmod>` : '') +
+            `<priority>${v.priorita}</priority></url>`
+        )
+        .join('\n') +
+      '\n</urlset>';
+    res.type('application/xml').send(xml);
+  })
+);
 
 /* ---------- errori ---------- */
 
