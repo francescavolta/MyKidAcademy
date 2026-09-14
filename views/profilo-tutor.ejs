@@ -139,10 +139,10 @@
         <div><button class="bottone" type="submit">Invia la richiesta</button></div>
       </form>
 
-      <% if (cfg.whatsapp) { %>
+      <% if (waNumero(cfg.whatsapp)) { %>
         <p style="margin:1rem 0 0">
-          <a class="bottone chiaro" href="https://wa.me/<%= cfg.whatsapp %>?text=<%= encodeURIComponent('Ciao! Ho visto ' + t.nome + ' sul sito e vorrei informazioni.') %>"
-             target="_blank" rel="noopener">Scrivici su WhatsApp</a>
+          <a class="bottone chiaro" target="_blank" rel="noopener"
+             href="https://wa.me/<%= waNumero(cfg.whatsapp) %>?text=<%- encodeURIComponent('Ciao! Ho visto ' + t.nome + ' su ' + cfg.nome_sito + ' e vorrei informazioni.') %>">Scrivici su WhatsApp</a>
         </p>
       <% } %>
     </div>

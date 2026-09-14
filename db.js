@@ -180,6 +180,13 @@ create table if not exists sezioni (
   ordine        integer not null default 0
 );
 create index if not exists sezioni_ordine on sezioni (ordine);
+
+create table if not exists sezione_immagini (
+  sezione_id  integer not null references sezioni(id) on delete cascade,
+  immagine_id integer not null references immagini(id) on delete cascade,
+  ordine      integer not null default 0,
+  primary key (sezione_id, immagine_id)
+);
 alter table sezioni add column if not exists posizione text not null default 'destra';
 alter table sezioni add column if not exists dimensione text not null default 'media';
 alter table sezioni add column if not exists allineamento text not null default 'sinistra';

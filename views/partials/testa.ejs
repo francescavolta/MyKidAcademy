@@ -30,7 +30,7 @@
   "description": "<%= cfg.og_descrizione %>",
   "url": "<%= indirizzo %>",
   "email": "<%= cfg.email_contatto %>"<% if (cfg.whatsapp) { %>,
-  "telephone": "+<%= cfg.whatsapp %>"<% } %><% if (cfg.og_immagine || cfg.home_immagine) { %>,
+  "telephone": "+<%= waNumero(cfg.whatsapp) %>"<% } %><% if (cfg.og_immagine || cfg.home_immagine) { %>,
   "image": "<%= indirizzo %>/immagini/<%= cfg.og_immagine || cfg.home_immagine %>"<% } %>,
   "areaServed": "Italia",
   "knowsLanguage": "it"

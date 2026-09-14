@@ -103,6 +103,12 @@ Quando il coordinamento porta una richiesta a **confermata**, se alla richiesta 
 
 **Agenda della settimana** (`/area/coordinamento/agenda`): tutte le ragazze approvate in righe, i sette giorni in colonne, le fasce nelle celle con verde/rosso, oggi evidenziato, frecce per cambiare settimana. Serve a rispondere a "chi ho libero giovedì alle 15" senza aprire le schede una a una.
 
+## Galleria e WhatsApp
+
+**Galleria**: tipo di blocco per la home con più immagini (tabella `sezione_immagini`, con ordine). Nella scheda del blocco si spuntano le foto dalla libreria; l'ordine è quello mostrato, e le già scelte salgono in cima. La misura del blocco (piccola/media/grande/piena) decide quante colonne ha la griglia.
+
+**WhatsApp**: `waNumero()` normalizza qualunque formato — `333 123 4567`, `+39 333 1234567`, `0039…` — in quello che vuole wa.me. Riconosce i cellulari e i fissi italiani senza prefisso e lascia intatti i numeri con prefisso straniero. Il pulsante compare sulla pagina di ogni tutor e nel piè di pagina di tutto il sito, con il messaggio già scritto.
+
 ## Pagina pubblica delle referenze
 
 `/referenze` raccoglie tutte le referenze pubblicate delle tutor approvate: media stelle, totale, quante ragazze sono recensite, filtro per ragazza e ordinamento (più recenti o voto più alto). Voce nel menu, presente anche nella sitemap.

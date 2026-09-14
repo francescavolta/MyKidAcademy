@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
 // Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
-const VERSIONE = '14 settembre 2026 (h) · pagina referenze';
+const VERSIONE = '14 settembre 2026 (i) · galleria e WhatsApp corretto';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
@@ -175,6 +175,7 @@ const DIMENSIONI_TITOLO = { piccolo: 'Piccolo', normale: 'Normale', grande: 'Gra
 
 const TIPI_SEZIONE = {
   testo: { nome: 'Testo', spiega: 'Un titolo e del testo, con immagine se vuoi.', campi: ['titolo', 'dimensione_titolo', 'corpo', 'allineamento', 'immagine', 'posizione', 'dimensione', 'larghezza'] },
+  galleria: { nome: 'Galleria di immagini', spiega: 'Più foto affiancate, con didascalia facoltativa.', campi: ['titolo', 'galleria', 'dimensione', 'allineamento', 'larghezza'] },
   immagine: { nome: 'Immagine', spiega: 'Una foto con didascalia facoltativa.', campi: ['immagine', 'dimensione', 'allineamento', 'titolo', 'larghezza'] },
   mansioni: { nome: 'Tessere dei servizi', spiega: 'I cinque riquadri: ripetizioni, compiti, babysitter, cucina, pulizia.', campi: ['titolo', 'dimensione_titolo', 'allineamento', 'larghezza'] },
   tutor: { nome: 'Schede delle tutor', spiega: 'Le prime sei ragazze approvate, con il link a tutte.', campi: ['titolo', 'dimensione_titolo', 'allineamento', 'larghezza'] },
@@ -192,7 +193,7 @@ const CAMPI_ASPETTO = [
   { chiave: 'titolo_home', gruppo: 'Home', label: 'Titolo grande in home', tipo: 'area', def: 'Una persona di fiducia\nper quello che serve a casa.', aiuto: 'Dove vai a capo tu, va a capo anche il sito.' },
   { chiave: 'sottotitolo_home', gruppo: 'Home', label: 'Frase sotto il titolo', tipo: 'area', def: 'Selezioniamo noi le ragazze che collaborano con noi, una per una. Tu scegli di cosa hai bisogno, guardi chi è libera e ci pensiamo noi a organizzare.' },
   { chiave: 'email_contatto', gruppo: 'Testi', label: 'Email di contatto', tipo: 'testo', def: 'ciao@esempio.it' },
-  { chiave: 'whatsapp', gruppo: 'Testi', label: 'Numero WhatsApp', tipo: 'testo', def: '', aiuto: 'Con prefisso e senza spazi, es. 393331234567. Lascia vuoto per non mostrare il pulsante.' },
+  { chiave: 'whatsapp', gruppo: 'Testi', label: 'Numero WhatsApp', tipo: 'testo', def: '', aiuto: 'Scrivilo come vuoi: 333 123 4567, +39 333 1234567, 393331234567. Ci penso io a sistemarlo. Lascia vuoto per non mostrare il pulsante.' },
   { chiave: 'testo_piede', gruppo: 'Testi', label: 'Riga in fondo alle pagine', tipo: 'testo', def: 'ripetizioni, aiuto compiti, babysitter e aiuto in casa.' },
 
   { chiave: 'home_immagine', gruppo: 'Home', label: 'Immagine principale', tipo: 'immagine', def: '', aiuto: 'Si carica da Immagini. Lascia "Nessuna" per la home senza foto.' },
@@ -245,6 +246,18 @@ function contrasto(a, b) {
   const x = luminanza(a);
   const y = luminanza(b);
   return Math.round(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 10) / 10;
+}
+
+// wa.me vuole solo cifre, con il prefisso internazionale e senza +.
+// Accetto qualunque formato e lo sistemo, senza rovinare i numeri stranieri.
+function waNumero(v) {
+  let n = String(v || '').replace(/\D/g, '');
+  if (n.startsWith('00')) n = n.slice(2);
+  if (n.length < 8) return '';
+  if (/^39\d{9,10}$/.test(n)) return n; // già con prefisso italiano
+  if (/^3\d{8,9}$/.test(n)) return '39' + n; // cellulare italiano senza prefisso
+  if (/^0\d{7,10}$/.test(n)) return '39' + n; // fisso italiano senza prefisso
+  return n; // un altro prefisso internazionale: lo lascio com'è
 }
 
 function scurisci(hex, quanto = 0.22) {
@@ -604,6 +617,7 @@ app.use(
     res.locals.scurisci = scurisci;
     res.locals.contrasto = contrasto;
     res.locals.tariffaTesto = tariffaTesto;
+    res.locals.waNumero = waNumero;
     res.locals.VERSIONE = VERSIONE;
     res.locals.RAGGI = RAGGI;
     res.locals.COLORI_TESTO = COLORI_TESTO;
@@ -678,6 +692,31 @@ const SELECT_TUTOR = `
 async function sezioniHome({ soloAttive = true } = {}) {
   const { rows } = await pool.query(
     `select * from sezioni ${soloAttive ? 'where attiva = true' : ''} order by ordine asc, id asc`
+  );
+
+  // Alle gallerie attacco le loro immagini, in una query sola.
+  const gallerie = rows.filter((r) => r.tipo === 'galleria').map((r) => r.id);
+  if (gallerie.length) {
+    const { rows: foto } = await pool.query(
+      `select si.sezione_id, si.immagine_id, si.ordine, i.alt, i.nome
+       from sezione_immagini si join immagini i on i.id = si.immagine_id
+       where si.sezione_id = any($1::int[])
+       order by si.ordine asc`,
+      [gallerie]
+    );
+    rows.forEach((r) => {
+      if (r.tipo === 'galleria') r.foto = foto.filter((f) => f.sezione_id === r.id);
+    });
+  }
+  return rows;
+}
+
+async function fotoDellaGalleria(sezioneId) {
+  const { rows } = await pool.query(
+    `select si.immagine_id, si.ordine, i.nome, i.alt
+     from sezione_immagini si join immagini i on i.id = si.immagine_id
+     where si.sezione_id = $1 order by si.ordine asc`,
+    [sezioneId]
   );
   return rows;
 }
@@ -2325,6 +2364,7 @@ app.get(
     res.render('admin-sezione', {
       titolo: 'Blocco della home',
       s: rows[0],
+      foto: rows[0].tipo === 'galleria' ? await fotoDellaGalleria(rows[0].id) : [],
       immagini,
       TIPI_SEZIONE,
       POSIZIONI_FOTO,
@@ -2385,6 +2425,19 @@ app.post(
         req.params.id
       ]
     );
+    // Galleria: riscrivo l'elenco delle foto nell'ordine in cui sono state spuntate.
+    const scelte = [].concat(req.body.immagini || []).filter((x) => /^\d+$/.test(String(x)));
+    const { rows: tipoRighe } = await pool.query('select tipo from sezioni where id = $1', [req.params.id]);
+    if (tipoRighe[0] && tipoRighe[0].tipo === 'galleria') {
+      await pool.query('delete from sezione_immagini where sezione_id = $1', [req.params.id]);
+      for (let i = 0; i < scelte.length; i++) {
+        await pool.query(
+          'insert into sezione_immagini (sezione_id, immagine_id, ordine) values ($1,$2,$3) on conflict do nothing',
+          [req.params.id, scelte[i], i + 1]
+        );
+      }
+    }
+
     avvisa(req, req.body.attiva === 'si' ? 'Blocco salvato e visibile in home.' : 'Blocco salvato, per ora spento.');
     res.redirect('/area/coordinamento/home');
   })

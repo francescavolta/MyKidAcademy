@@ -25,6 +25,35 @@
     </div>
   <% } %>
 
+  <% if (campi.includes('galleria')) { %>
+    <fieldset>
+      <legend>Immagini della galleria</legend>
+      <% if (immagini.length === 0) { %>
+        <p class="data">Non hai ancora caricato immagini: <a href="/area/coordinamento/immagini">caricane qualcuna</a>.</p>
+      <% } else { %>
+        <p class="data">Spunta quelle che vuoi mostrare. L'ordine è quello in cui compaiono qui sotto.</p>
+        <% var scelte = foto.map(function (f) { return String(f.immagine_id); }); %>
+        <ul class="scelta-foto">
+          <% immagini.slice().sort(function (a, b) {
+               var ia = scelte.indexOf(String(a.id)); var ib = scelte.indexOf(String(b.id));
+               if (ia === -1 && ib === -1) return 0;
+               if (ia === -1) return 1;
+               if (ib === -1) return -1;
+               return ia - ib;
+             }).forEach(function (i) { %>
+            <li>
+              <label>
+                <input type="checkbox" name="immagini" value="<%= i.id %>" <%- scelte.includes(String(i.id)) ? 'checked' : '' %>>
+                <img src="/immagini/<%= i.id %>" alt="" loading="lazy">
+                <span><%= i.nome %></span>
+              </label>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </fieldset>
+  <% } %>
+
   <% if (campi.includes('immagine')) { %>
     <div>
       <label for="immagine_id">Immagine

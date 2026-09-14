@@ -75,6 +75,19 @@
     <p style="margin-top:1.2rem"><a class="bottone chiaro" href="/blog"><%= cfg.home_titolo_articoli %></a></p>
   <% } %>
 
+<% } else if (s.tipo === 'galleria') { %>
+  <% if (s.titolo) { %><h2><%= s.titolo %></h2><% } %>
+  <% var foto = s.foto || []; %>
+  <% if (foto.length === 0) { %>
+    <div class="vuoto"><p>Nessuna immagine scelta per questa galleria.</p></div>
+  <% } else { %>
+    <ul class="galleria galleria--<%= s.dimensione %>">
+      <% foto.forEach(function (f) { %>
+        <li><img src="/immagini/<%= f.immagine_id %>" alt="<%= f.alt || '' %>" loading="lazy"></li>
+      <% }) %>
+    </ul>
+  <% } %>
+
 <% } else if (s.tipo === 'immagine') { %>
   <% if (s.immagine_id) { %>
     <figure class="fig fig--<%= s.dimensione %> fig--all-<%= s.allineamento %>">

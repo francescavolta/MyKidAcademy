@@ -908,3 +908,19 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
 }
 .muro blockquote::before { content: '“'; color: var(--rosa); font-size: 1.6rem; line-height: 0; vertical-align: -0.2em; margin-right: 0.15rem; }
 .muro .data { margin-top: auto; }
+
+/* ---------- galleria ---------- */
+
+.galleria { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.8rem; }
+.galleria--piccola { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.galleria--media { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.galleria--grande { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+.galleria--piena { grid-template-columns: 1fr; }
+.galleria img { width: 100%; height: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--raggio); display: block; }
+.galleria--piena img { aspect-ratio: auto; }
+
+.scelta-foto { list-style: none; padding: 0; margin: 0.6rem 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.6rem; }
+.scelta-foto label { display: block; font-weight: 400; margin: 0; cursor: pointer; }
+.scelta-foto img { width: 100%; height: 80px; object-fit: cover; border-radius: var(--raggio-piccolo); display: block; margin: 0.25rem 0; border: 2px solid transparent; }
+.scelta-foto input:checked + img { border-color: var(--prugna); }
+.scelta-foto span { font-size: 0.8rem; color: var(--grigio); word-break: break-word; }
