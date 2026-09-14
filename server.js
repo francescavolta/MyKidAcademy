@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
 // Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
-const VERSIONE = '14 settembre 2026 (f) · documenti solo nel coordinamento';
+const VERSIONE = '14 settembre 2026 (g) · esportazione schede ragazze';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
@@ -2921,6 +2921,67 @@ app.post(
       });
     }
     res.redirect('/area/tutor#conversazione');
+  })
+);
+
+// Esportazione delle schede in CSV: punto e virgola e BOM, così Excel italiano
+// lo apre in colonne senza che tu debba fare niente.
+function cellaCsv(v) {
+  if (v === null || v === undefined) return '';
+  const t = String(v).replace(/\r?\n/g, ' ').trim();
+  return /[";]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+
+app.get(
+  '/area/coordinamento/ragazze.csv',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query(`
+      select u.id, u.nome, u.email, u.telefono, u.zona, u.status, u.tariffa, u.tariffa_max,
+             u.bio, u.nota_interna, u.created_at,
+             coalesce(array_agg(distinct m.mansione) filter (where m.mansione is not null), '{}') as mansioni,
+             coalesce(array_agg(distinct t.nome) filter (where t.nome is not null), '{}') as materie,
+             (select count(*)::int from referenze r where r.tutor_id = u.id and r.stato = 'pubblicata') as referenze,
+             (select round(avg(r.stelle)::numeric, 1) from referenze r where r.tutor_id = u.id and r.stato = 'pubblicata') as stelle,
+             (select count(*)::int from documenti d where d.user_id = u.id) as documenti,
+             (select min(d.scadenza) from documenti d where d.user_id = u.id and d.scadenza is not null) as prima_scadenza,
+             (select count(*)::int from richieste q where q.tutor_id = u.id) as richieste_ricevute,
+             (select count(*)::int from disponibilita dd where dd.user_id = u.id and dd.stato = 'libero' and dd.data >= current_date) as fasce_libere
+      from users u
+      left join mansioni m on m.user_id = u.id
+      left join materie t on t.user_id = u.id
+      where u.role = 'tutor'
+      group by u.id
+      order by u.nome asc`);
+
+    const intestazioni = [
+      'Nome', 'Email', 'Telefono', 'Zona', 'Stato', 'Tariffa da', 'Tariffa a',
+      'Mansioni', 'Materie', 'Referenze', 'Media stelle', 'Documenti',
+      'Prima scadenza', 'Richieste ricevute', 'Fasce libere', 'Iscritta il', 'Presentazione', 'Nota interna'
+    ];
+
+    const data = (d) => (d ? new Date(d).toLocaleDateString('it-IT') : '');
+
+    const righe = rows.map((r) =>
+      [
+        r.nome, r.email, r.telefono, r.zona, r.status,
+        r.tariffa === null ? '' : Number(r.tariffa),
+        r.tariffa_max === null ? '' : Number(r.tariffa_max),
+        (r.mansioni || []).map(labelMansione).join(', '),
+        (r.materie || []).join(', '),
+        r.referenze, r.stelle === null ? '' : Number(r.stelle),
+        r.documenti, data(r.prima_scadenza), r.richieste_ricevute, r.fasce_libere,
+        data(r.created_at), r.bio, r.nota_interna
+      ]
+        .map(cellaCsv)
+        .join(';')
+    );
+
+    const csv = '\ufeff' + [intestazioni.join(';'), ...righe].join('\r\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="ragazze-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(csv);
   })
 );
 

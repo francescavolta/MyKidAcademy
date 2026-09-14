@@ -204,6 +204,7 @@ Cosa parte, e a chi:
 - **Fascia scelta nella richiesta**: la famiglia può indicare quale fascia le va bene, e la richiesta la registra (`richieste.disponibilita_id`).
 - **Ore del mese**: nella scheda della tutor, il totale delle ore segnate come occupate nel mese visualizzato.
 - **Secondo account coordinamento**: dal fondo dell'area coordinamento, con email e password. Ha gli stessi poteri.
+- **Schede delle ragazze in CSV**: `/area/coordinamento/ragazze.csv`, solo per il coordinamento. Una riga per collaboratrice con contatti, zona, stato, tariffe, mansioni, materie, numero di referenze e media stelle, documenti e prima scadenza, richieste ricevute, fasce libere future, presentazione e nota interna. Separatore punto e virgola e BOM UTF-8, così Excel italiano lo apre in colonne.
 - **Copia dei dati**: `/area/coordinamento/esporta.json` scarica tutto tranne i byte delle immagini. Non sostituisce i backup di Render, ma è una rete di sicurezza che controlli tu.
 
 ## Calendario e referenze
