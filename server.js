@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
 // Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
-const VERSIONE = '14 settembre 2026 (e) · chat interna con le ragazze';
+const VERSIONE = '14 settembre 2026 (f) · documenti solo nel coordinamento';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
@@ -1441,8 +1441,6 @@ app.get(
       giorni: raggruppaPerData(slots),
       mese: await meseDi(t.id, chiave),
       referenze: await referenzeDi(t.id, { tutte: true }),
-      documenti: await documentiDi(t.id),
-      TIPI_DOCUMENTO,
       interna,
       richieste
     });
@@ -2812,16 +2810,6 @@ async function salvaDocumento(req, res, userId, chi) {
   avvisa(req, 'Documento caricato.');
   return true;
 }
-
-app.post(
-  '/area/tutor/documenti',
-  soloTutor,
-  riceviImmagine,
-  wrap(async (req, res) => {
-    await salvaDocumento(req, res, req.utente.id, 'tutor');
-    res.redirect('/area/tutor');
-  })
-);
 
 app.post(
   '/area/coordinamento/tutor/:id/documenti',

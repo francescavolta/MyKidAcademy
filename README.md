@@ -111,7 +111,7 @@ Ogni messaggio manda un'email all'altra parte. I messaggi non letti dalle ragazz
 
 ## Documenti delle collaboratrici
 
-Tabella `documenti` (tipo, file in `bytea`, scadenza, nota, chi l'ha caricato). Ogni tutor carica i propri dalla sua area; il coordinamento li carica, li vede tutti, cambia le scadenze e li elimina. Il download (`/documenti/:id`) è consentito **solo** all'amministrazione e alla diretta interessata, con `Cache-Control: private, no-store`.
+Tabella `documenti` (tipo, file in `bytea`, scadenza, nota, chi l'ha caricato). **Li gestisce solo il coordinamento**: la sezione non compare nell'area delle tutor e non esiste una rotta con cui possano caricarli. Il coordinamento li carica, li vede tutti, cambia le scadenze e li elimina. Il download (`/documenti/:id`) è consentito **solo** all'amministrazione e alla diretta interessata, con `Cache-Control: private, no-store`.
 
 I tipi previsti sono in `TIPI_DOCUMENTO`: documento d'identità, codice fiscale, contratto firmato, certificato penale, assicurazione, titolo di studio, altro. I documenti scaduti o in scadenza entro 30 giorni compaiono in cima all'area coordinamento, in "Documenti da rinnovare", e sono evidenziati nella scheda.
 
