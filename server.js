@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
 // Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
-const VERSIONE = '13 settembre 2026 (b) · eliminazione richieste e conversazioni';
+const VERSIONE = '14 settembre 2026 (b) · statistiche e Google';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
@@ -182,7 +182,7 @@ const CAMPI_ASPETTO = [
 
   { chiave: 'og_descrizione', gruppo: 'Condivisione', label: 'Descrizione quando condividi il link', tipo: 'area', def: 'Ripetizioni, aiuto compiti, babysitter e aiuto in casa. Persone selezionate una per una.', aiuto: 'È il testo che compare nel riquadro su WhatsApp e sui social.' },
   { chiave: 'og_immagine', gruppo: 'Condivisione', label: 'Immagine di condivisione', tipo: 'immagine', def: '', aiuto: 'Meglio orizzontale. Se non la metti uso quella in cima alla home.' },
-  { chiave: 'privacy_testo', gruppo: 'Privacy', label: 'Testo della pagina privacy', tipo: 'area', def: 'Questa pagina spiega come trattiamo i dati che ci lasci sul sito.\n\n## Chi tratta i dati\nI dati sono trattati da MyKidAcademy. Per qualsiasi richiesta puoi scriverci all\'indirizzo che trovi in fondo al sito.\n\n## Quali dati raccogliamo\nQuando mandi una richiesta: nome, email, telefono e quello che scrivi nel messaggio. Quando lasci una referenza: la firma che scegli, il voto, il commento e l\'email se la indichi. Quando ti candidi per lavorare con noi: i dati della tua scheda.\n\n## Perché\nPer ricontattarti e organizzare il servizio che ci hai chiesto. Non li usiamo per altro e non li vendiamo a nessuno.\n\n## Per quanto tempo\nFinché servono a gestire il rapporto con te. Puoi chiederci di cancellarli quando vuoi.\n\n## I tuoi diritti\nPuoi chiederci di vedere, correggere o cancellare i tuoi dati, oppure di non usarli più: basta scriverci.\n\n## Cookie\nUsiamo solo un cookie tecnico che tiene aperto l\'accesso di chi entra nella propria area. Non facciamo profilazione e non usiamo cookie di terze parti.', aiuto: 'Compila con i tuoi dati veri: nome dell\'attività, P.IVA e indirizzo. Questo è un punto di partenza, non un testo legale garantito.' },
+  { chiave: 'privacy_testo', gruppo: 'Privacy', label: 'Testo della pagina privacy', tipo: 'area', def: 'Questa pagina spiega come trattiamo i dati che ci lasci sul sito.\n\n## Chi tratta i dati\nI dati sono trattati da MyKidAcademy. Per qualsiasi richiesta puoi scriverci all\'indirizzo che trovi in fondo al sito.\n\n## Quali dati raccogliamo\nQuando mandi una richiesta: nome, email, telefono e quello che scrivi nel messaggio. Quando lasci una referenza: la firma che scegli, il voto, il commento e l\'email se la indichi. Quando ti candidi per lavorare con noi: i dati della tua scheda.\n\n## Perché\nPer ricontattarti e organizzare il servizio che ci hai chiesto. Non li usiamo per altro e non li vendiamo a nessuno.\n\n## Per quanto tempo\nFinché servono a gestire il rapporto con te. Puoi chiederci di cancellarli quando vuoi.\n\n## I tuoi diritti\nPuoi chiederci di vedere, correggere o cancellare i tuoi dati, oppure di non usarli più: basta scriverci.\n\n## Cookie\nUsiamo solo un cookie tecnico che tiene aperto l\'accesso di chi entra nella propria area. Non facciamo profilazione e non usiamo cookie di terze parti.\n\n## Statistiche\nContiamo le visite alle pagine senza cookie e senza conservare indirizzi IP: usiamo un codice che cambia ogni giorno e non permette di risalire a nessuno. Ci serve solo per sapere quante persone visitano il sito.', aiuto: 'Compila con i tuoi dati veri: nome dell\'attività, P.IVA e indirizzo. Questo è un punto di partenza, non un testo legale garantito.' },
   { chiave: 'titolo_blog', gruppo: 'Blog', label: 'Titolo della pagina blog', tipo: 'testo', def: 'Blog' },
   { chiave: 'sottotitolo_blog', gruppo: 'Blog', label: 'Frase sotto il titolo', tipo: 'area', def: 'Consigli, avvisi e cose che vale la pena raccontare ai genitori.' },
   { chiave: 'blog_impaginazione', gruppo: 'Blog', label: 'Come si vede l\'elenco', tipo: 'scelta', opzioni: IMPAGINAZIONI_BLOG, def: 'elenco' },
@@ -364,6 +364,29 @@ app.use(express.json({ limit: '100kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 if (PROD) app.set('trust proxy', 1);
 
+// Intestazioni di sicurezza: poche righe, nessuna libreria in più.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (PROD) res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  res.setHeader(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "img-src 'self' data:",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "script-src 'self' 'unsafe-inline'",
+      "form-action 'self'",
+      "frame-ancestors 'self'",
+      "base-uri 'self'"
+    ].join('; ')
+  );
+  next();
+});
+
 app.use(
   session({
     store: new PgStore({ pool, tableName: 'sessioni', createTableIfMissing: true }),
@@ -404,6 +427,118 @@ function robot(req) {
   const aperto = parseInt(req.body.aperto_il, 10);
   if (aperto && Date.now() - aperto < 3000) return true; // compilato in meno di 3 secondi
   return false;
+}
+
+// Tentativi falliti tenuti in memoria: basta un'istanza sola come la nostra.
+const tentativi = new Map();
+const MAX_TENTATIVI = 6;
+const FINESTRA = 15 * 60 * 1000;
+
+function chiaveTentativi(req, email) {
+  return `${req.ip}|${String(email || '').toLowerCase()}`;
+}
+
+function bloccato(req, email) {
+  const v = tentativi.get(chiaveTentativi(req, email));
+  if (!v) return 0;
+  if (Date.now() - v.primo > FINESTRA) {
+    tentativi.delete(chiaveTentativi(req, email));
+    return 0;
+  }
+  if (v.n < MAX_TENTATIVI) return 0;
+  return Math.ceil((v.primo + FINESTRA - Date.now()) / 60000); // minuti che mancano
+}
+
+function segnaFallito(req, email) {
+  const k = chiaveTentativi(req, email);
+  const v = tentativi.get(k);
+  if (!v || Date.now() - v.primo > FINESTRA) tentativi.set(k, { n: 1, primo: Date.now() });
+  else v.n += 1;
+}
+
+function azzeraTentativi(req, email) {
+  tentativi.delete(chiaveTentativi(req, email));
+}
+
+// Ogni tanto ripulisco, per non tenere in memoria roba vecchia.
+setInterval(() => {
+  const ora = Date.now();
+  for (const [k, v] of tentativi) if (ora - v.primo > FINESTRA) tentativi.delete(k);
+}, 10 * 60 * 1000).unref();
+
+// ---------- difesa dalle richieste inviate da altri siti ----------
+// Un modulo su un sito qualsiasi non può far compiere azioni sul nostro
+// usando i cookie di chi è connesso: controllo da dove arriva la richiesta.
+app.use((req, res, next) => {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+
+  const mio = `${req.protocol}://${req.get('host')}`;
+  const origine = req.get('origin');
+  const provenienza = req.get('referer');
+
+  if (origine) {
+    if (origine === mio) return next();
+  } else if (provenienza) {
+    if (provenienza.startsWith(mio + '/') || provenienza === mio) return next();
+  } else if (!req.path.startsWith('/area')) {
+    // Nessuna delle due intestazioni: lo tollero solo sui moduli pubblici,
+    // dove qualche browser vecchio o restrittivo non le manda.
+    return next();
+  }
+
+  console.warn(`Richiesta bloccata da ${origine || provenienza || 'origine ignota'} verso ${req.path}`);
+  return res.status(403).render('errore', {
+    titolo: 'Richiesta non accettata',
+    messaggio: 'Per sicurezza il sito accetta i moduli solo se compilati sulle sue pagine. Ricarica la pagina e riprova.'
+  });
+});
+
+// Statistiche senza cookie e senza salvare indirizzi IP.
+// L'impronta è un codice che cambia ogni giorno e non permette di risalire alla persona.
+const SALE_GIORNO = { giorno: '', valore: '' };
+const ROBOT = /bot|crawler|spider|crawling|facebookexternalhit|preview|monitor|curl|wget|python-requests|headless/i;
+const NON_CONTARE = /^\/(area|chat|stato|versione|immagini|style\.css|editor\.js|modifica-home\.js|carica-immagine\.js|robots\.txt|sitemap\.xml|favicon)/;
+
+function impronta(req) {
+  const oggi = new Date().toISOString().slice(0, 10);
+  if (SALE_GIORNO.giorno !== oggi) {
+    SALE_GIORNO.giorno = oggi;
+    SALE_GIORNO.valore = crypto.randomBytes(16).toString('hex');
+  }
+  return crypto
+    .createHash('sha256')
+    .update(SALE_GIORNO.valore + (req.ip || '') + (req.get('user-agent') || ''))
+    .digest('hex')
+    .slice(0, 16);
+}
+
+function sorgenteDi(req) {
+  const r = req.get('referer');
+  if (!r) return 'diretto';
+  try {
+    const host = new URL(r).host.replace(/^www\./, '');
+    if (host === String(req.get('host') || '').replace(/^www\./, '')) return 'interno';
+    if (/google\./.test(host)) return 'Google';
+    if (/instagram|facebook|fb\./.test(host)) return host.includes('instagram') ? 'Instagram' : 'Facebook';
+    if (/whatsapp/.test(host)) return 'WhatsApp';
+    return host;
+  } catch (e) {
+    return 'diretto';
+  }
+}
+
+function contaVisita(req) {
+  if (req.method !== 'GET') return;
+  if (NON_CONTARE.test(req.path)) return;
+  if (ROBOT.test(req.get('user-agent') || '')) return;
+  if (req.utente) return; // non conto me stessa mentre lavoro al sito
+  pool
+    .query('insert into visite (percorso, sorgente, impronta) values ($1,$2,$3)', [
+      req.path.slice(0, 200),
+      sorgenteDi(req),
+      impronta(req)
+    ])
+    .catch((e) => console.error('visita non registrata:', e.message));
 }
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -463,6 +598,7 @@ app.use(
         req.session.destroy(() => {});
       }
     }
+    contaVisita(req);
     next();
   })
 );
@@ -1090,18 +1226,38 @@ app.post(
   wrap(async (req, res) => {
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
+
+    const minuti = bloccato(req, email);
+    if (minuti) {
+      avvisa(req, `Troppi tentativi con questa email. Riprova fra ${minuti} minut${minuti === 1 ? 'o' : 'i'}.`, 'errore');
+      return res.redirect('/accedi');
+    }
+
     const { rows } = await pool.query('select * from users where email = $1', [email]);
     const u = rows[0];
     if (!u || !(await bcrypt.compare(password, u.password_hash))) {
-      avvisa(req, 'Email o password non corrispondono.', 'errore');
+      segnaFallito(req, email);
+      const restanti = MAX_TENTATIVI - (tentativi.get(chiaveTentativi(req, email)) || { n: 0 }).n;
+      avvisa(
+        req,
+        restanti > 0 && restanti <= 2
+          ? `Email o password non corrispondono. Ancora ${restanti} tentativ${restanti === 1 ? 'o' : 'i'} prima del blocco.`
+          : 'Email o password non corrispondono.',
+        'errore'
+      );
       return res.redirect('/accedi');
     }
     if (u.status === 'rifiutato') {
       avvisa(req, 'Questa candidatura non è stata accolta.', 'errore');
       return res.redirect('/accedi');
     }
-    req.session.userId = u.id;
-    res.redirect('/area');
+    azzeraTentativi(req, email);
+    // Sessione nuova all'accesso: un identificativo vecchio non vale più niente.
+    req.session.regenerate((err) => {
+      if (err) return res.redirect('/accedi');
+      req.session.userId = u.id;
+      res.redirect('/area');
+    });
   })
 );
 
@@ -1117,6 +1273,11 @@ app.post(
   '/password',
   wrap(async (req, res) => {
     const email = String(req.body.email || '').trim().toLowerCase();
+    if (bloccato(req, 'reset|' + email)) {
+      avvisa(req, 'Hai già chiesto il link diverse volte. Controlla la posta, anche nello spam, e riprova fra un quarto d\'ora.', 'errore');
+      return res.redirect('/accedi');
+    }
+    segnaFallito(req, 'reset|' + email);
     const { rows } = await pool.query("select * from users where email = $1 and role = 'tutor'", [email]);
     // Rispondo sempre allo stesso modo: così non si scopre chi è registrata e chi no.
     if (rows[0]) {
@@ -2148,6 +2309,50 @@ app.post(
 );
 
 /* ---------- agenda della settimana ---------- */
+
+app.get(
+  '/area/coordinamento/statistiche',
+  soloAdmin,
+  wrap(async (req, res) => {
+    const giorni = Math.min(90, Math.max(7, parseInt(req.query.giorni, 10) || 30));
+    const intervallo = `current_date - ${giorni - 1}`;
+
+    const q = async (sql) => (await pool.query(sql)).rows;
+
+    const perGiorno = await q(`
+      select giorno,
+             count(*)::int as viste,
+             count(distinct impronta)::int as persone
+      from visite where giorno >= ${intervallo}
+      group by giorno order by giorno asc`);
+
+    const totali = await q(`
+      select count(*)::int as viste, count(distinct impronta)::int as persone
+      from visite where giorno >= ${intervallo}`);
+
+    const pagine = await q(`
+      select percorso, count(*)::int as viste
+      from visite where giorno >= ${intervallo}
+      group by percorso order by viste desc limit 12`);
+
+    const sorgenti = await q(`
+      select sorgente, count(*)::int as viste
+      from visite where giorno >= ${intervallo}
+      group by sorgente order by viste desc limit 10`);
+
+    const massimo = perGiorno.reduce((m, r) => Math.max(m, r.viste), 1);
+
+    res.render('admin-statistiche', {
+      titolo: 'Statistiche',
+      giorni,
+      perGiorno,
+      massimo,
+      totali: totali[0] || { viste: 0, persone: 0 },
+      pagine,
+      sorgenti
+    });
+  })
+);
 
 app.get(
   '/area/coordinamento/agenda',

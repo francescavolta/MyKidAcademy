@@ -1,0 +1,65 @@
+<%- include('partials/testa') %>
+
+<p style="margin-top:1.5rem"><a href="/area/coordinamento">← Coordinamento</a></p>
+<h1>Statistiche</h1>
+<p class="guida">Ultimi <%= giorni %> giorni. Non uso cookie e non salvo indirizzi IP: conto le visite con un codice che cambia ogni giorno, quindi i numeri sono indicativi ma onesti. Le tue visite da amministratrice non sono contate.</p>
+
+<div class="riga-azioni" style="margin-bottom:1.2rem">
+  <a class="bottone piccolo chiaro" href="?giorni=7">7 giorni</a>
+  <a class="bottone piccolo chiaro" href="?giorni=30">30 giorni</a>
+  <a class="bottone piccolo chiaro" href="?giorni=90">90 giorni</a>
+</div>
+
+<ul class="sommario">
+  <li><b><%= totali.persone %></b> persone</li>
+  <li><b><%= totali.viste %></b> pagine viste</li>
+  <li><b><%= totali.persone ? Math.round((totali.viste / totali.persone) * 10) / 10 : 0 %></b> pagine a testa</li>
+</ul>
+
+<% if (perGiorno.length === 0) { %>
+  <div class="vuoto" style="margin-top:1.5rem"><p>Ancora nessuna visita registrata. I numeri cominciano da quando hai messo online questa versione.</p></div>
+<% } else { %>
+  <h2 style="margin-top:2.5rem">Giorno per giorno</h2>
+  <ul class="barre">
+    <% perGiorno.forEach(function (g) { %>
+      <li>
+        <span class="barre-giorno"><%= new Date(g.giorno).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }) %></span>
+        <span class="barre-riga"><span class="barre-piena" style="width: <%= Math.max(2, Math.round((g.viste / massimo) * 100)) %>%"></span></span>
+        <span class="barre-numero"><%= g.persone %> · <%= g.viste %></span>
+      </li>
+    <% }) %>
+  </ul>
+  <p class="data">Per ogni giorno: persone · pagine viste.</p>
+
+  <div class="due-colonne" style="margin-top:2.5rem">
+    <div>
+      <h2>Pagine più viste</h2>
+      <div class="tabella-avvolgi">
+        <table>
+          <thead><tr><th>Pagina</th><th>Viste</th></tr></thead>
+          <tbody>
+            <% pagine.forEach(function (p) { %>
+              <tr><td><a href="<%= p.percorso %>"><%= p.percorso %></a></td><td><%= p.viste %></td></tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h2>Da dove arrivano</h2>
+      <div class="tabella-avvolgi">
+        <table>
+          <thead><tr><th>Sorgente</th><th>Viste</th></tr></thead>
+          <tbody>
+            <% sorgenti.forEach(function (s) { %>
+              <tr><td><%= s.sorgente %></td><td><%= s.viste %></td></tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <p class="data">"diretto" vuol dire link aperto a mano, dai preferiti o da un'app che non dichiara la provenienza — su WhatsApp succede spesso.</p>
+    </div>
+  </div>
+<% } %>
+
+<%- include('partials/piede') %>

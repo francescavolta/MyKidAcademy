@@ -16,10 +16,26 @@
 <% } else { %>
   <meta name="twitter:card" content="summary">
 <% } %>
+<link rel="canonical" href="<%= indirizzo %><%= percorso %>">
+<meta property="og:url" content="<%= indirizzo %><%= percorso %>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?<%= font.query %>&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "<%= cfg.nome_sito %>",
+  "description": "<%= cfg.og_descrizione %>",
+  "url": "<%= indirizzo %>",
+  "email": "<%= cfg.email_contatto %>"<% if (cfg.whatsapp) { %>,
+  "telephone": "+<%= cfg.whatsapp %>"<% } %><% if (cfg.og_immagine || cfg.home_immagine) { %>,
+  "image": "<%= indirizzo %>/immagini/<%= cfg.og_immagine || cfg.home_immagine %>"<% } %>,
+  "areaServed": "Italia",
+  "knowsLanguage": "it"
+}
+</script>
 <style>
   :root {
     --carta: <%= percorso.startsWith('/blog') ? cfg.colore_blog_sfondo : cfg.colore_carta %>;

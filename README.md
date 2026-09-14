@@ -103,6 +103,21 @@ Quando il coordinamento porta una richiesta a **confermata**, se alla richiesta 
 
 **Agenda della settimana** (`/area/coordinamento/agenda`): tutte le ragazze approvate in righe, i sette giorni in colonne, le fasce nelle celle con verde/rosso, oggi evidenziato, frecce per cambiare settimana. Serve a rispondere a "chi ho libero giovedì alle 15" senza aprire le schede una a una.
 
+## Statistiche e Google
+
+**Statistiche** (`/area/coordinamento/statistiche`, tabella `visite`): conteggio interno senza cookie e senza salvare IP. L'impronta è `sha256(sale_del_giorno + ip + user-agent)` troncata, con un sale casuale rigenerato ogni giorno: permette di contare le persone di una giornata, non di riconoscerle il giorno dopo. Non conta le richieste degli amministratori, i robot noti, le pagine sotto `/area`, la chat, `/stato` e i file statici. La pagina mostra persone e pagine viste per giorno, le pagine più viste e la provenienza (Google, Instagram, WhatsApp, diretto). Per il testo privacy c'è già un paragrafo dedicato nel valore di partenza.
+
+**Google**: `robots.txt` (blocca `/area/`, `/chat/`, `/stato`, dichiara la sitemap), `sitemap.xml` generata dal database con home, elenco, profili approvati, blog, articoli pubblicati, pagine attive; `<link rel="canonical">` e `og:url` su ogni pagina; dati strutturati JSON-LD `LocalBusiness` in testa e `BlogPosting` sugli articoli. Tutto usa `INDIRIZZO_SITO`, quindi quella variabile deve essere giusta.
+
+## Protezione degli accessi
+
+- **Tentativi di accesso**: dopo 6 password sbagliate per la stessa coppia indirizzo-IP, l'accesso è bloccato per 15 minuti; negli ultimi due tentativi il messaggio avvisa. Il contatore si azzera a ogni accesso riuscito e vive in memoria (`tentativi`), quindi si svuota a ogni riavvio: sufficiente con una sola istanza come questa. Lo stesso limite vale sulle richieste di recupero password.
+- **Richieste da altri siti**: un middleware controlla `Origin` (o in mancanza `Referer`) su ogni POST. Se non corrisponde al sito, la richiesta è rifiutata con una pagina spiegata. Quando mancano entrambe le intestazioni la richiesta passa solo sui moduli pubblici, mai sotto `/area`. Insieme al cookie `sameSite: lax` copre il caso CSRF senza dover mettere un token in una quarantina di moduli.
+- **Sessione rigenerata all'accesso**: l'identificativo precedente smette di valere.
+- **Intestazioni**: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security` in produzione e una CSP che limita le origini. La CSP consente `unsafe-inline` perché le pagine usano attributi di stile e qualche `onsubmit`/`onchange` in linea: serve a bloccare script esterni, non quelli della pagina.
+
+Se un modulo smette di funzionare con "Richiesta non accettata", la causa quasi certa è il controllo dell'origine: succede aprendo il sito da un indirizzo diverso da quello configurato (per esempio onrender.com dopo il passaggio al dominio).
+
 ## Eliminare davvero
 
 - **Richiesta**: bottone Elimina nella tabella delle richieste. Cancella per sempre, libera la fascia se era stata occupata per quella famiglia (solo se la nota è quella scritta dal sistema) e, con la casella spuntata, porta via anche la conversazione. Senza spunta la chat resta, scollegata dalla richiesta.

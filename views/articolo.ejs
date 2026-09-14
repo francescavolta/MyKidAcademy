@@ -14,4 +14,16 @@
   <%- corpoHtml(a.corpo) %>
 </article>
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "<%= a.titolo %>",
+  "datePublished": "<%= new Date(a.created_at).toISOString() %>",
+  "dateModified": "<%= new Date(a.updated_at).toISOString() %>",
+  "author": { "@type": "Organization", "name": "<%= cfg.nome_sito %>" }<% if (a.immagine_id) { %>,
+  "image": "<%= indirizzo %>/immagini/<%= a.immagine_id %>"<% } %>
+}
+</script>
+
 <%- include('partials/piede') %>

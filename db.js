@@ -128,6 +128,16 @@ create table if not exists messaggi (
 );
 create index if not exists messaggi_conversazione on messaggi (conversazione_id, created_at asc);
 
+create table if not exists visite (
+  id        serial primary key,
+  giorno    date not null default current_date,
+  percorso  text not null,
+  sorgente  text not null default 'diretto',
+  impronta  text not null
+);
+create index if not exists visite_giorno on visite (giorno);
+create index if not exists visite_percorso on visite (giorno, percorso);
+
 create table if not exists referenze (
   id         serial primary key,
   tutor_id   integer not null references users(id) on delete cascade,

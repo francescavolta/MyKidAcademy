@@ -839,3 +839,17 @@ figcaption { color: var(--grigio); font-size: 0.88rem; margin-top: 0.5rem; }
 .agenda-settimana td { padding: 0.4rem; }
 .agenda-settimana .cal-fascia { margin-bottom: 2px; }
 .agenda-settimana .oggi { background: var(--velo); }
+
+/* ---------- statistiche ---------- */
+
+.barre { list-style: none; padding: 0; margin: 1.2rem 0 0; display: grid; gap: 0.3rem; max-width: 46rem; }
+.barre li { display: flex; align-items: center; gap: 0.7rem; font-size: 0.85rem; }
+.barre-giorno { width: 5.5rem; color: var(--grigio); flex: none; }
+.barre-riga { flex: 1; background: var(--velo); border-radius: 999px; height: 14px; overflow: hidden; }
+.barre-piena { display: block; height: 100%; background: var(--prugna); border-radius: 999px; }
+.barre-numero { width: 6rem; text-align: right; color: var(--grigio); font-variant-numeric: tabular-nums; flex: none; }
+
+@media (max-width: 600px) {
+  .barre-giorno { width: 4rem; }
+  .barre-numero { width: 4.5rem; }
+}
