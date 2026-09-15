@@ -120,6 +120,10 @@ Nel modulo ci sono le scorciatoie "Tutti i giorni", "Dal lunedì al venerdì", "
 
 **Lezione settimanale**: nella colonna Fascia della tabella richieste, quando la richiesta ha una fascia collegata, compare "ogni settimana per N sett. → Blocca". Ripete quella fascia nelle settimane successive, segnandola occupata con la nota "Famiglia <nome>": se il giorno esiste già libero lo occupa, altrimenti crea la fascia. Le fasce già occupate da altri non vengono toccate.
 
+## Modifica il sito
+
+`/area/coordinamento/modifica` raccoglie in una pagina sola tutte le voci con cui si costruisce il sito — Home, Aspetto, Pagine, Blog, Immagini, Bottoni del pannello, Guarda il sito — ognuna con una riga che spiega cosa fa (`VOCI_MODIFICA` in `server.js`). I bottoni di partenza del pannello diventano quattro: Messaggi, Agenda, Statistiche, Modifica il sito. Chi ha già una configurazione salvata la mantiene: per passare al pannello raccolto basta aggiungere "Modifica il sito" dalla pagina dei bottoni e nascondere gli altri, oppure usare "Rimetti l'ordine di partenza".
+
 ## Bottoni del pannello
 
 L'elenco dei possibili bottoni sta in `SCORCIATOIE` (`server.js`); quali mostrare e in che ordine è salvato nell'impostazione `scorciatoie` (una lista di id separati da virgola, gruppo `nascosto` quindi non compare nella pagina Aspetto). Si gestisce da `/area/coordinamento/scorciatoie`, raggiungibile dall'ingranaggio in fondo alla fila dei bottoni: frecce per spostare, Nascondi/Mostra, e "Rimetti l'ordine di partenza". Gli id sconosciuti vengono ignorati e le voci aggiunte in futuro compaiono fra i nascosti, quindi aggiornare il codice non rompe mai la configurazione salvata.

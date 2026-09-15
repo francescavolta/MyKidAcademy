@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
 // Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
-const VERSIONE = '15 settembre 2026 (c) · periodi interi, tutto il giorno, svuota';
+const VERSIONE = '15 settembre 2026 (d) · bottone Modifica il sito';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
@@ -36,6 +36,7 @@ const FILE_ATTESI = [
   'views/admin-blog.ejs',
   'views/admin-home.ejs',
   'views/admin-immagini.ejs',
+  'views/admin-modifica.ejs',
   'views/admin-pagina.ejs',
   'views/admin-pagine.ejs',
   'views/admin-scorciatoie.ejs',
@@ -234,8 +235,20 @@ const CAMPI_ASPETTO = [
 
 // I bottoni in cima all'area coordinamento. L'ordine e quali mostrare
 // stanno nelle impostazioni, così li sistemi senza toccare il codice.
+// Le pagine con cui si costruisce il sito, raccolte sotto un solo bottone.
+const VOCI_MODIFICA = [
+  { link: '/area/coordinamento/home', nome: 'Home', spiega: 'I blocchi della pagina iniziale: spostali, accendili, aggiungine.' },
+  { link: '/area/coordinamento/aspetto', nome: 'Aspetto del sito', spiega: 'Colori, caratteri, forme, testi dell\'intestazione e del blog.' },
+  { link: '/area/coordinamento/pagine', nome: 'Pagine', spiega: '"Chi siamo", le domande frequenti e le altre pagine fisse.' },
+  { link: '/area/coordinamento/blog', nome: 'Blog', spiega: 'Scrivi articoli, salvali in bozza, pubblicali.' },
+  { link: '/area/coordinamento/immagini', nome: 'Immagini', spiega: 'La libreria delle foto usate in home, nel blog e nelle gallerie.' },
+  { link: '/area/coordinamento/scorciatoie', nome: 'Bottoni del pannello', spiega: 'Quali bottoni vedere qui sopra e in che ordine.' },
+  { link: '/', nome: 'Guarda il sito', spiega: 'Aprilo come lo vedono le famiglie.' }
+];
+
 const SCORCIATOIE = {
   messaggi: { nome: 'Messaggi', link: '/area/coordinamento/messaggi', contatore: 'messaggi' },
+  modifica: { nome: 'Modifica il sito', link: '/area/coordinamento/modifica' },
   agenda: { nome: 'Agenda della settimana', link: '/area/coordinamento/agenda' },
   statistiche: { nome: 'Statistiche', link: '/area/coordinamento/statistiche' },
   home: { nome: 'Home', link: '/area/coordinamento/home' },
@@ -246,7 +259,7 @@ const SCORCIATOIE = {
   referenze: { nome: 'Referenze pubbliche', link: '/referenze' },
   sito: { nome: 'Guarda il sito', link: '/' }
 };
-const SCORCIATOIE_DEFAULT = 'messaggi,agenda,statistiche,home,blog,pagine,immagini,aspetto';
+const SCORCIATOIE_DEFAULT = 'messaggi,agenda,statistiche,modifica';
 
 // Dall'impostazione salvata ricavo l'elenco da mostrare, ignorando gli id
 // che non esistono più e mettendo in fondo quelli aggiunti dopo.
@@ -3389,6 +3402,14 @@ app.post(
 
     avvisa(req, `Lezione settimanale segnata per ${settimane} settimane: ${create} fasce nuove, ${occupate} già libere ora occupate.`);
     res.redirect('/area/coordinamento');
+  })
+);
+
+app.get(
+  '/area/coordinamento/modifica',
+  soloAdmin,
+  wrap(async (req, res) => {
+    res.render('admin-modifica', { titolo: 'Modifica il sito', VOCI_MODIFICA });
   })
 );
 

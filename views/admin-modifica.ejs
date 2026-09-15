@@ -1,0 +1,17 @@
+<%- include('partials/testa') %>
+
+<p style="margin-top:1.5rem"><a href="/area/coordinamento">← Coordinamento</a></p>
+<h1>Modifica il sito</h1>
+<p class="guida">Tutto quello che cambia come il sito si vede e cosa racconta. Le richieste, i messaggi e le ragazze restano nel pannello principale.</p>
+
+<ul class="griglia" style="margin-top:2rem">
+  <% VOCI_MODIFICA.forEach(function (v) { %>
+    <li class="scheda">
+      <h3><a href="<%= v.link %>"><%= v.nome %></a></h3>
+      <p class="testo"><%= v.spiega %></p>
+      <div><a class="bottone piccolo chiaro" href="<%= v.link %>">Apri</a></div>
+    </li>
+  <% }) %>
+</ul>
+
+<%- include('partials/piede') %>

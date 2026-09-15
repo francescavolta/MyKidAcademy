@@ -62,10 +62,14 @@
   </ul>
 <% } %>
 
-<form method="post" action="/area/coordinamento/scorciatoie" style="margin-top:2.5rem"
+<div class="vuoto" style="margin-top:2.5rem">
+  <p><strong>Un consiglio.</strong> Tieni in vista solo quello che apri ogni giorno — Messaggi, Agenda, Statistiche — e lascia Home, Aspetto, Pagine, Blog e Immagini dentro il bottone <a href="/area/coordinamento/modifica">Modifica il sito</a>, che li raccoglie tutti.</p>
+</div>
+
+<form method="post" action="/area/coordinamento/scorciatoie" style="margin-top:2rem"
       onsubmit="return confirm('Rimettere i bottoni come all\'inizio?')">
   <input type="hidden" name="azione" value="ripristina">
-  <button class="link-testo" type="submit">Rimetti l'ordine di partenza</button>
+  <button class="link-testo" type="submit">Rimetti l'ordine di partenza (Messaggi, Agenda, Statistiche, Modifica il sito)</button>
 </form>
 
 <%- include('partials/piede') %>
