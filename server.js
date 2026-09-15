@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const PROD = process.env.NODE_ENV === 'production';
 // Cambia a ogni pacchetto: serve a capire dal sito quale versione è davvero online.
-const VERSIONE = '15 settembre 2026 · fasce ripetute e lezioni settimanali';
+const VERSIONE = '15 settembre 2026 (c) · periodi interi, tutto il giorno, svuota';
 const INDIRIZZO = (process.env.INDIRIZZO_SITO || '').replace(/\/$/, '');
 const urlAssoluto = (req, percorso) => (INDIRIZZO || `${req.protocol}://${req.get('host')}`) + percorso;
 
@@ -25,6 +25,7 @@ const FILE_ATTESI = [
   'package.json',
   'public/carica-immagine.js',
   'public/editor.js',
+  'public/fasce.js',
   'public/modifica-home.js',
   'public/style.css',
   'render.yaml',
@@ -1687,11 +1688,45 @@ app.post(
       return res.redirect('/area/tutor');
     }
     await pool.query(
-      `insert into disponibilita (user_id, data, ora_inizio, ora_fine, nota, creata_da)
-       values ($1,$2,$3,$4,$5,'tutor')`,
-      [req.utente.id, data, ora_inizio, ora_fine, String(nota || '').trim().slice(0, 140)]
+      `insert into disponibilita (user_id, data, ora_inizio, ora_fine, nota, stato, creata_da)
+       values ($1,$2,$3,$4,$5,$6,'tutor')`,
+      [
+        req.utente.id,
+        data,
+        ora_inizio,
+        ora_fine,
+        String(nota || '').trim().slice(0, 140),
+        req.body.stato === 'occupato' ? 'occupato' : 'libero'
+      ]
     );
-    avvisa(req, 'Disponibilità aggiunta al calendario.');
+    avvisa(req, req.body.stato === 'occupato' ? 'Fascia aggiunta come occupata.' : 'Disponibilità aggiunta al calendario.');
+    res.redirect('/area/tutor');
+  })
+);
+
+app.post(
+  '/area/tutor/disponibilita/:id/stato',
+  soloTutor,
+  wrap(async (req, res) => {
+    const { rows } = await pool.query('select * from disponibilita where id = $1 and user_id = $2', [
+      req.params.id,
+      req.utente.id
+    ]);
+    const f = rows[0];
+    if (!f) return res.redirect('/area/tutor');
+
+    // Gli impegni presi dal coordinamento con una famiglia non li tocca lei.
+    if (f.creata_da === 'coordinamento' && /^Famiglia /.test(f.nota || '')) {
+      avvisa(req, 'Questa fascia è un impegno preso con una famiglia: per cambiarla scrivi al coordinamento.', 'errore');
+      return res.redirect('/area/tutor');
+    }
+
+    await pool.query(
+      `update disponibilita set stato = case when stato = 'libero' then 'occupato' else 'libero' end
+       where id = $1`,
+      [f.id]
+    );
+    avvisa(req, f.stato === 'libero' ? 'Fascia segnata come occupata: le famiglie non la vedono più.' : 'Fascia di nuovo libera.');
     res.redirect('/area/tutor');
   })
 );
@@ -3213,12 +3248,13 @@ app.post(
 
 async function aggiungiRipetute(req, userId, creataDa) {
   const { ora_inizio, ora_fine, dal, al, nota } = req.body;
+  const svuota = req.body.azione === 'svuota';
   const giorni = []
     .concat(req.body.giorni || [])
     .map(Number)
     .filter((g) => g >= 1 && g <= 7);
 
-  if (!ora_inizio || !ora_fine || ora_fine <= ora_inizio) {
+  if (!svuota && (!ora_inizio || !ora_fine || ora_fine <= ora_inizio)) {
     avvisa(req, 'Indica un orario di inizio e una fine successiva.', 'errore');
     return;
   }
@@ -3237,14 +3273,52 @@ async function aggiungiRipetute(req, userId, creataDa) {
     return;
   }
 
+  // Svuotare un periodo: tolgo le fasce di quei giorni, ma mai gli impegni
+  // presi con una famiglia, che si disfano solo dalla richiesta.
+  if (svuota) {
+    let tolte = 0;
+    let protette = 0;
+    for (const d of date) {
+      const valori = [userId, d];
+      let filtro = 'user_id = $1 and data = $2';
+      if (ora_inizio) {
+        valori.push(ora_inizio);
+        filtro += ` and ora_inizio = $${valori.length}`;
+      }
+      const { rows: trovate } = await pool.query(`select * from disponibilita where ${filtro}`, valori);
+      for (const f of trovate) {
+        if (/^Famiglia /.test(f.nota || '')) {
+          protette++;
+          continue;
+        }
+        await pool.query('delete from disponibilita where id = $1', [f.id]);
+        tolte++;
+      }
+    }
+    avvisa(
+      req,
+      `Tolte ${tolte} fasce.` + (protette ? ` ${protette} sono impegni con una famiglia e le ho lasciate.` : '')
+    );
+    return;
+  }
+
+  const stato = req.body.stato === 'occupato' ? 'occupato' : 'libero';
   let create = 0;
   for (const d of date) {
-    if (await creaFascia(userId, d, ora_inizio, ora_fine, { nota: String(nota || '').trim().slice(0, 140), creataDa })) create++;
+    if (
+      await creaFascia(userId, d, ora_inizio, ora_fine, {
+        stato,
+        nota: String(nota || '').trim().slice(0, 140),
+        creataDa
+      })
+    )
+      create++;
   }
   const saltate = date.length - create;
   avvisa(
     req,
-    `Aggiunte ${create} fasce.` + (saltate ? ` ${saltate} c'erano già e le ho lasciate stare.` : '')
+    `Aggiunte ${create} fasce ${stato === 'occupato' ? 'come occupate' : 'libere'}.` +
+      (saltate ? ` ${saltate} c'erano già e le ho lasciate stare.` : '')
   );
 }
 

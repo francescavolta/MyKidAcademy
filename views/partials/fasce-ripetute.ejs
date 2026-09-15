@@ -1,6 +1,7 @@
 <details class="ripetute">
   <summary>Aggiungi più fasce insieme (ogni settimana)</summary>
-  <p class="testo">Invece di inserire giorno per giorno: scegli l'orario, i giorni della settimana e il periodo. Le fasce che esistono già non vengono toccate.</p>
+  <p class="testo">Scegli l'orario, i giorni della settimana e il periodo: creo tutte le fasce in una volta. Le fasce che esistono già non vengono toccate.</p>
+  <p class="data">Esempi: <em>tutti i giorni dalle 6 alle 7</em> per un impegno fisso · <em>dal lunedì al venerdì</em> per le disponibilità del pomeriggio · <em>tutto il giorno, tutti i giorni</em> per bloccare una vacanza.</p>
 
   <form class="modulo" method="post" action="<%= azione %>">
     <div class="doppia">
@@ -12,10 +13,22 @@
         <label for="rip_fine">Alle</label>
         <input id="rip_fine" name="ora_fine" type="time" required>
       </div>
+      <div style="align-self:end">
+        <div class="riga-azioni">
+          <button type="button" class="bottone piccolo chiaro" data-orario="giornata">Tutto il giorno</button>
+          <button type="button" class="bottone piccolo chiaro" data-orario="pulisci">Pulisci</button>
+        </div>
+      </div>
     </div>
 
     <fieldset>
       <legend>In quali giorni</legend>
+      <div class="riga-azioni" style="margin-bottom:.6rem">
+        <button type="button" class="bottone piccolo chiaro" data-giorni="tutti">Tutti i giorni</button>
+        <button type="button" class="bottone piccolo chiaro" data-giorni="feriali">Dal lunedì al venerdì</button>
+        <button type="button" class="bottone piccolo chiaro" data-giorni="weekend">Sabato e domenica</button>
+        <button type="button" class="bottone piccolo chiaro" data-giorni="nessuno">Nessuno</button>
+      </div>
       <div class="caselle">
         <% [[1,'lunedì'],[2,'martedì'],[3,'mercoledì'],[4,'giovedì'],[5,'venerdì'],[6,'sabato'],[7,'domenica']].forEach(function (g) { %>
           <label><input type="checkbox" name="giorni" value="<%= g[0] %>"> <%= g[1] %></label>
@@ -39,6 +52,21 @@
       <input id="rip_nota" name="nota" type="text" maxlength="140" placeholder="solo online">
     </div>
 
-    <div><button class="bottone" type="submit">Crea le fasce</button></div>
+    <fieldset>
+      <legend>Come segnarle</legend>
+      <div class="caselle">
+        <label><input type="radio" name="stato" value="libero" checked> Libere, visibili alle famiglie</label>
+        <label><input type="radio" name="stato" value="occupato"> Occupate, per bloccare un periodo</label>
+      </div>
+    </fieldset>
+
+    <div class="riga-azioni">
+      <button class="bottone" type="submit" name="azione" value="crea">Crea le fasce</button>
+      <button class="bottone chiaro" type="submit" name="azione" value="svuota"
+              onclick="return confirm('Togliere le fasce di quei giorni? Gli impegni già presi con le famiglie restano.')">Svuota quei giorni</button>
+    </div>
+    <p class="data">"Svuota quei giorni" toglie le fasce del periodo e dei giorni scelti. Se lasci vuoto l'orario, toglie tutte le fasce di quei giorni.</p>
   </form>
 </details>
+
+<script src="/fasce.js" defer></script>

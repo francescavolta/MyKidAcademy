@@ -77,6 +77,13 @@
         <label for="nota">Nota <span class="aiuto">Facoltativa, es. "solo online".</span></label>
         <input id="nota" name="nota" type="text" maxlength="140">
       </div>
+      <fieldset>
+        <legend>Com'è questa fascia</legend>
+        <div class="caselle">
+          <label><input type="radio" name="stato" value="libero" checked> Libera, le famiglie possono chiedermela</label>
+          <label><input type="radio" name="stato" value="occupato"> Occupata, è un mio impegno</label>
+        </div>
+      </fieldset>
       <div><button class="bottone" type="submit">Aggiungi la fascia</button></div>
     </form>
 
@@ -93,6 +100,9 @@
                 <span class="nota">
                   <%= s.stato === 'occupato' ? 'occupato' : 'libero' %><% if (s.nota) { %> · <%= s.nota %><% } %><% if (s.creata_da === 'coordinamento') { %> · inserita dal coordinamento<% } %>
                 </span>
+                <form method="post" action="/area/tutor/disponibilita/<%= s.id %>/stato">
+                  <button class="bottone piccolo chiaro" type="submit"><%= s.stato === 'libero' ? 'Segna occupata' : 'Segna libera' %></button>
+                </form>
                 <form method="post" action="/area/tutor/disponibilita/<%= s.id %>/elimina">
                   <button class="bottone piccolo chiaro" type="submit">Rimuovi</button>
                 </form>

@@ -103,9 +103,20 @@ Quando il coordinamento porta una richiesta a **confermata**, se alla richiesta 
 
 **Agenda della settimana** (`/area/coordinamento/agenda`): tutte le ragazze approvate in righe, i sette giorni in colonne, le fasce nelle celle con verde/rosso, oggi evidenziato, frecce per cambiare settimana. Serve a rispondere a "chi ho libero giovedì alle 15" senza aprire le schede una a una.
 
+## Libera o occupata
+
+Ogni fascia ha due stati. Le libere si vedono sulla pagina pubblica della tutor e si possono chiedere; le occupate no.
+
+- La tutor sceglie lo stato quando crea una fascia (singola o ripetuta) e lo cambia dopo con "Segna occupata / Segna libera".
+- **Eccezione**: una fascia occupata dal coordinamento per una famiglia (nota "Famiglia …") la tutor non la può sbloccare da sola — le viene detto di scrivere al coordinamento. Serve a evitare che un impegno preso sparisca per errore.
+- Il coordinamento può cambiare qualunque fascia, dalla scheda della ragazza.
+- Le fasce ripetute si possono creare occupate in blocco: è il modo per bloccare un periodo intero, tipo la settimana degli esami o le vacanze.
+
 ## Fasce ripetute e lezioni settimanali
 
 **Fasce ripetute** (`generaDate` + `creaFascia`): dalla propria area la tutor, e dalla scheda il coordinamento, aprono "Aggiungi più fasce insieme" e indicano orario, giorni della settimana e periodo. Il sistema crea tutte le date corrispondenti, saltando quelle già presenti (stessa persona, stesso giorno, stessa ora). Tetti: otto mesi di periodo e 200 fasce per volta.
+
+Nel modulo ci sono le scorciatoie "Tutti i giorni", "Dal lunedì al venerdì", "Sabato e domenica" e "Tutto il giorno" (00:00–23:59), più **"Svuota quei giorni"**, che toglie le fasce del periodo e dei giorni scelti — tutte quelle del giorno se l'orario è vuoto. Gli impegni con nota "Famiglia …" non vengono mai cancellati in blocco.
 
 **Lezione settimanale**: nella colonna Fascia della tabella richieste, quando la richiesta ha una fascia collegata, compare "ogni settimana per N sett. → Blocca". Ripete quella fascia nelle settimane successive, segnandola occupata con la nota "Famiglia <nome>": se il giorno esiste già libero lo occupa, altrimenti crea la fascia. Le fasce già occupate da altri non vengono toccate.
 
